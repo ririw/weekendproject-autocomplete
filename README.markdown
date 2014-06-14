@@ -22,7 +22,7 @@ string. The second kicks in when the first has no suggestions, and suggests word
 search. By removing the ordering requirement, the second should be able to handle a lot of possibilities, while the first 
 should be a lot more helpful, because it'll suggest very salient things. I think.
 
-## Bug Log
+# Bug Log
  This is a log of all the mistakes I made along the way. They've settled on a format:
  
     <Date> - <Type> - <Git Hash where bug was last seen>: <Explanation>
@@ -56,6 +56,16 @@ should be a lot more helpful, because it'll suggest very salient things. I think
     The other case is for when the implementor does not need to do this, and may return the refinements in any order
     they choose. This took a couple of refactorings, it was still broken in 976ca61843a4a160f646eec666e028de351642d7
     and a198c872df222e54ac993e59a22c83f0aeb9df2e, but they are different approaches to the problem
+  * Sat Jun 14 21:39:16 EST 2014 - U - 079f3847a4e32c46e6d920fcc58649285da92915: I just noticed, while documenting
+    my code, that my filter method had a mistake. It previously worked by zipping the query array and the search
+    array, then checking all of the strings were the same. The problem with this is that if the search is shorter 
+    than the query, it could slip through. Eg:
+        
+        Query:  Build a website
+        Search: Build a
+        Zipped: (Build, Build), (a, a)
+    
+    The solution is simple: just make the search is at least as long as the query.
     
 
 # Acknowledgements

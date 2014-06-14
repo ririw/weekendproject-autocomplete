@@ -95,7 +95,6 @@ trait BucDataSet[Query] {
    * Expand a query: return a list of less specific queries, or None
    * if no such queries exist
    * @param query the query to expand
-   * @return
    */
   def expansion(query: Query): Option[Iterator[Query]]
 }
@@ -116,7 +115,6 @@ trait BucDataSetWithMinSup[Query] extends BucDataSetRefinable {
    *
    * @param minSupp the minimum support
    * @param query the query to refine
-   * @return
    */
   def refinement(minSupp: Long)(query: Query): Option[Iterator[Query]]
 }
@@ -134,7 +132,6 @@ trait BucDataSetWithoutMinSup[Query] extends BucDataSetRefinable{
    * Return None if there are no refinements possible.
    *
    * @param query the query to refine
-   * @return
    */
   def refinement(query: Query): Option[Iterator[Query]]
 }
