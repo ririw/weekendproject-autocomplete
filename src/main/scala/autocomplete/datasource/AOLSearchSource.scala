@@ -14,7 +14,7 @@ import java.util.zip.GZIPInputStream
  * The parameter is a list of inputstreams and close methods.
  */
 class AOLSearchSource(inputs: List[(InputStream, () => Unit)]) extends SearchSource[Search] with ErrorSource[SearchFailure] {
-  override def iterator: Iterator[Search] = inputs.toIterator.flatMap { input =>
+  override def iterator(): Iterator[Search] = inputs.toIterator.flatMap { input =>
     val results = scala.io.Source.fromInputStream(input._1).getLines().map(stringToSearch)
     results.flatMap{r => r.right.toOption}
   }

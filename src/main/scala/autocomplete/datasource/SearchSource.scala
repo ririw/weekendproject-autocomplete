@@ -1,7 +1,5 @@
 package autocomplete.datasource
 
-import autocomplete.datasource.Search
-
 /**
  * A trait for any search source. A search source must
  * have an iterator that will yield searches. Pretty

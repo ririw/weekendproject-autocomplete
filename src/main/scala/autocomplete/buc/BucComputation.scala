@@ -46,7 +46,7 @@ class BucComputation[Query, DataSet <: BucDataSet[Query]]
 trait BucDataSet[Query] {
   /**
    * Run a query over a data set
-   * @param q the query to run
+   * @param query the query to run
    * @return the number of records that fulfill that query
    */
   def query(query: Query): Long
@@ -58,7 +58,7 @@ trait BucDataSet[Query] {
    * and so on.
    *
    * If no refinement is possible, then return None.
-   * @param q the base query
+   * @param query the base query
    * @return an iterator of queries.
    */
   def refinement(query: Query): Option[Iterator[Query]]
@@ -69,10 +69,10 @@ trait BucDataSet[Query] {
    *  query(refinement.head) > query(refinement.tail.head)
    *  
    * If no expansion is possible, then return none
-   * @param q the base query
+   * @param query the base query
    * @return an iterator of queries.
    */
-  def expansion(query: Query): Option[Query]
+  def expansion(query: Query): Option[Iterator[Query]]
 
   /**
    * The least specific query.
