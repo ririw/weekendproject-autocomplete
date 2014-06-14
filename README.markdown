@@ -30,7 +30,10 @@ should be a lot more helpful, because it'll suggest very salient things. I think
     may track failures when they happen. 
   * Sat Jun 14 17:43:53 EST 2014 - I originally had a single string for a search. I changed this to an Array[String],
     because that makes way more sense when it comes to querying. Not sure how I could have anticipated this one though...
-  * Sat Jun 14 17:43:53 EST 2014 - Not quite a bug, but I'm worried about my current 
+  * Sat Jun 14 17:43:53 EST 2014 - Not quite a bug, but I'm worried about my current version (git sha version: 
+    afd1a9d1075a30266cfbd0b918dba63f188b21f2) of the SearchSourceDataSet. It uses a sequential scan for every query.
+    This needs updating to use some sort of index. But the problem is that if I use a prefix index or something, but 
+    then I may need BUC for that as well!
     
 
 # Acknowledgements
