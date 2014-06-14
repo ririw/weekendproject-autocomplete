@@ -15,7 +15,7 @@ import scala.Ordering
 class SearchSourceDataSet(searches: AOLSearchSource) extends BucDataSet[SearchSourceQuery] with BucDataSetWithMinSup[SearchSourceQuery] {
   override val baseQuery: SearchSourceQuery = SearchSourceQuery(Array())
 
-  override def expansion(minSupp: Long)(query: SearchSourceQuery): Option[Iterator[SearchSourceQuery]] = query.expansion
+  override def expansion(query: SearchSourceQuery): Option[Iterator[SearchSourceQuery]] = query.expansion
 
   override def refinement(minSupp: Long)(query: SearchSourceQuery): Option[Iterator[SearchSourceQuery]] = {
     /* Group by the next item in the search, so for

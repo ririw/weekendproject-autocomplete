@@ -16,12 +16,38 @@ abstract class BucComputation[Query, DataSet <: BucDataSet[Query] with BucDataSe
   (val dataSet: DataSet, val minSupp: Long)
   (implicit val queryOrdering: Ordering[Query]) {
 
+  /**
+   * This is the method that is used to refine the query. We check on the type of
+   * the DataSet, and it it's one that uses minSupp we pass minSupp in and set up
+   * the call back.
+   *
+   * Otherwise, we use the non minSupp version.
+   */
+
   private val refineDataSet: Query => Option[Iterator[Query]] = {
     dataSet match {
-      case s: BucDataSetWithMinSup[Query] => s.refinement(minSupp) _
-      case s: BucDataSetWithoutMinSup[Query] => s.refinement _
+      case s: BucDataSetWithMinSup[Query] => s.refinement(minSupp)
+      case s: BucDataSetWithoutMinSup[Query] => s.refinement
     }
   }
+
+  /**
+   * Similarly, takeRefinements is a function that will take a list of queries and then reduce
+   * it down to those that are admissible to the problem, ie, those who yield at least minSupp
+   * items.
+   */
+  protected val takeRefinements: Iterator[Query] => Iterator[Query] = {
+    dataSet match {
+      case s: BucDataSetWithMinSup[Query] => takeRefinements_withMinSupp
+      case s: BucDataSetWithoutMinSup[Query] => takeRefinements_withoutMinSupp
+    }
+  }
+
+  protected def takeRefinements_withMinSupp(refinements: Iterator[Query]): Iterator[Query] = refinements
+  protected def takeRefinements_withoutMinSupp(refinements: Iterator[Query]): Iterator[Query] = {
+    refinements.filter{q => dataSet.query(q) >= minSupp}
+  }
+
   /**
    * This is the map of all the admissible queries, ie, those who appear minSupp
    * or more times in the dataSet.
@@ -44,25 +70,8 @@ abstract class BucComputation[Query, DataSet <: BucDataSet[Query] with BucDataSe
     }
     result
   }
+  /** Apply a query, either getting the count for it, or None if it is below minSupp */
   def apply(query: Query): Option[Long] = nodeMap.get(query)
-
-  def takeRefinements(refinements: Iterator[Query]): Iterator[Query]
-}
-
-sealed trait BucType
-
-trait KnownQuantityRefiningQuery[Query, DataSet <: BucDataSet[Query] with BucDataSetRefinable] extends BucType {
-  this: BucComputation[Query, DataSet] =>
-  def takeRefinements(refinements: Iterator[Query]): Iterator[Query] = {
-    refinements.takeWhile{q => dataSet.query(q) >= minSupp}
-  }
-}
-
-trait UnknownQuantityRefiningQuery[Query, DataSet <: BucDataSet[Query] with BucDataSetRefinable] extends BucType {
-  this: BucComputation[Query, DataSet] =>
-  def takeRefinements(refinements: Iterator[Query]): Iterator[Query] = {
-    refinements.filter{q => dataSet.query(q) >= minSupp}
-  }
 }
 
 /**
@@ -79,84 +88,54 @@ trait BucDataSet[Query] {
    */
   def query(query: Query): Long
 
-  /**
-   * The least specific query.
-   */
+  /** The least specific query. */
   val baseQuery: Query
+
+  /**
+   * Expand a query: return a list of less specific queries, or None
+   * if no such queries exist
+   * @param query the query to expand
+   * @return
+   */
+  def expansion(query: Query): Option[Iterator[Query]]
 }
 sealed trait BucDataSetRefinable
 
-trait BucDataSetWithMinSup[Query] extends BucDataSetRefinable{
+/**
+ * This is a version of the dataset that will compute a count of the query when
+ * it produces the query itself. As such, it should only return those queries
+ * that meet the minSupp requirement, ie, dataset.apply(query) >= minSupp
+ * @tparam Query the query type
+ */
+trait BucDataSetWithMinSup[Query] extends BucDataSetRefinable {
   /**
-   * Create an arbitrarily long list of refined queries, in
-   * order of most to least supported, ie:
-   *  query(refinement.head) > query(refinement.tail.head)
-   * and so on.
+   * Refine the query: return a list of more specific queries, as long as
+   * they would yield at least minSupp items.
    *
-   * All returned results must have more than minSup
-   * items
+   * Return None if there are no refinements possible.
    *
-   * If no refinement is possible, then return None.
-   * @param query the base query
-   * @param minSupp the minimum number of items needed. If you are using the
-   *                data set with a BucComputation extending KnownQuantityRefiningQuery
-   *                then all the returned Queries must yield at least minSupp items
-   * @return an iterator of queries.
+   * @param minSupp the minimum support
+   * @param query the query to refine
+   * @return
    */
   def refinement(minSupp: Long)(query: Query): Option[Iterator[Query]]
-
-  /**
-   * Take a query, and return a list of less specific queries
-   * in order most to least supported, ie:
-   *  query(refinement.head) > query(refinement.tail.head)
-   *
-   * All returned results must have more than minSup
-   * items
-   *
-   * If no expansion is possible, then return none
-   * @param query the base query
-   * @param minSupp the minimum number of items needed. If you are using the
-   *                data set with a BucComputation extending KnownQuantityRefiningQuery
-   *                then all the returned Queries must yield at least minSupp items
-   * @return an iterator of queries.
-   */
-  def expansion(minSupp: Long)(query: Query): Option[Iterator[Query]]
 }
 
+/**
+ * This is a version of the dataset that cannot easily compute a count
+ * for the query, so just return all the proposed queries.
+ * @tparam Query theq query type
+ */
 trait BucDataSetWithoutMinSup[Query] extends BucDataSetRefinable{
   /**
-   * Create an arbitrarily long list of refined queries, in
-   * order of most to least supported, ie:
-   *  query(refinement.head) > query(refinement.tail.head)
-   * and so on.
+   * Refine the query: return a list of more specific queries,
+   * regardless of whether they meet the support criteria
    *
-   * All returned results must have more than minSup
-   * items
+   * Return None if there are no refinements possible.
    *
-   * If no refinement is possible, then return None.
-   * @param minSupp the minimum number of items needed. If you are using the
-   *                data set with a BucComputation extending KnownQuantityRefiningQuery
-   *                then all the returned Queries must yield at least minSupp items
-   * @param query the base query
-   * @return an iterator of queries.
+   * @param query the query to refine
+   * @return
    */
   def refinement(query: Query): Option[Iterator[Query]]
-
-  /**
-   * Take a query, and return a list of less specific queries
-   * in order most to least supported, ie:
-   *  query(refinement.head) > query(refinement.tail.head)
-   *
-   * All returned results must have more than minSup
-   * items
-   *
-   * If no expansion is possible, then return none
-   * @param minSupp the minimum number of items needed. If you are using the
-   *                data set with a BucComputation extending KnownQuantityRefiningQuery
-   *                then all the returned Queries must yield at least minSupp items
-   * @param query the base query
-   * @return an iterator of queries.
-   */
-  def expansion(query: Query): Option[Iterator[Query]]
 }
 

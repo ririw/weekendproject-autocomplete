@@ -54,9 +54,8 @@ should be a lot more helpful, because it'll suggest very salient things. I think
     class that splits it into two cases. The first is for when the DataSet builds refinements in a way where it
     counts up the items anyway, in which case the implementor may only return refinements with above or equal to minSup.
     The other case is for when the implementor does not need to do this, and may return the refinements in any order
-    they choose.
-  * Sat Jun 14 21:11:41 EST 2014 - D - 976ca61843a4a160f646eec666e028de351642d7: Refactored the same bug as above, but 
-    better.
+    they choose. This took a couple of refactorings, it was still broken in 976ca61843a4a160f646eec666e028de351642d7
+    and a198c872df222e54ac993e59a22c83f0aeb9df2e, but they are different approaches to the problem
     
 
 # Acknowledgements
