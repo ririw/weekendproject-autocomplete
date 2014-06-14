@@ -10,7 +10,7 @@ import autocomplete.datasource.{AOLSearchSource, SearchSource}
  * order most to least common. Expansions simply remove one item from
  * the end of the list.
  */
-class SearchSourceQuery(searches: AOLSearchSource) extends BucDataSet[Array[String]]{
+class SearchSourceDataSet(searches: AOLSearchSource) extends BucDataSet[Array[String]]{
   override val baseQuery: Array[String] = Array()
 
   override def expansion(query: Array[String]): Option[Array[String]] = query.length match {
