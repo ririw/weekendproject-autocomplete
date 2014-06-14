@@ -22,6 +22,17 @@ string. The second kicks in when the first has no suggestions, and suggests word
 search. By removing the ordering requirement, the second should be able to handle a lot of possibilities, while the first 
 should be a lot more helpful, because it'll suggest very salient things. I think.
 
+## Bug Log
+  * Sat Jun 14 16:15:25 EST 2014 - misunderstood the string split method. I split on the '\t' character, but this can
+    fail, when a string such as "a\t\b\t\t" comes along, it'll split to ["a", "b"] rather than ["a", "b", ""], which
+    meant that my parsing code wouldn't work in some cases. My solution was twofold. Firstly, rather than condition on
+    exactly 5 fields, I conditioned on more than two. Secondly, rather than return an Option, I return Either, so I
+    may track failures when they happen. 
+  * Sat Jun 14 17:43:53 EST 2014 - I originally had a single string for a search. I changed this to an Array[String],
+    because that makes way more sense when it comes to querying. Not sure how I could have anticipated this one though...
+  * Sat Jun 14 17:43:53 EST 2014 - Not quite a bug, but I'm worried about my current 
+    
+
 # Acknowledgements
 This was based on the spray easter eggs template from typesafe activator. That shit is like magic.
 ## Spray Easter Eggs Project
