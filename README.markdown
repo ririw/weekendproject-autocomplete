@@ -25,7 +25,7 @@ should be a lot more helpful, because it'll suggest very salient things. I think
 ## Bug Log
  This is a log of all the mistakes I made along the way. They've settled on a format:
  
-    <Date> - <Type> - <Git Hash>: <Explanation>
+    <Date> - <Type> - <Git Hash where bug was last seen>: <Explanation>
  
  The types are:
   
@@ -48,6 +48,8 @@ should be a lot more helpful, because it'll suggest very salient things. I think
   * Sat Jun 14 17:55:28 EST 2014 - D - c691600a732f1743b03b29d7db0ab4fe13d91049: I had the searches in the AOLSearchSource
     object as values, when they're probably better as functions that produce new values. This is so that the programmer
     can use the close() method in a "better" way.
+  * Sat Jun 14 19:59:06 EST 2014 - D - bef5e1646bd4de32a57a48011bb8039e81e43d8d: I forgot to make my queries a separate
+    class, instead keeping them as bare Array[String]s. This might have lead to bugs down the line.
     
 
 # Acknowledgements
