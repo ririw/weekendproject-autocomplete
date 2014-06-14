@@ -50,6 +50,11 @@ should be a lot more helpful, because it'll suggest very salient things. I think
     can use the close() method in a "better" way.
   * Sat Jun 14 19:59:06 EST 2014 - D - bef5e1646bd4de32a57a48011bb8039e81e43d8d: I forgot to make my queries a separate
     class, instead keeping them as bare Array[String]s. This might have lead to bugs down the line.
+  * Sat Jun 14 19:59:06 EST 2014 - D - d65e0ffcb9d7b68f474a9a09b921fe543613013b: A large refactoring of the BucComputation
+    class that splits it into two cases. The first is for when the DataSet builds refinements in a way where it
+    counts up the items anyway, in which case the implementor may only return refinements with above or equal to minSup.
+    The other case is for when the implementor does not need to do this, and may return the refinements in any order
+    they choose.
     
 
 # Acknowledgements

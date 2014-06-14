@@ -2,6 +2,7 @@ package autocomplete.buc
 
 import autocomplete.datasource.{Search, AOLSearchSource}
 import scala.collection.mutable
+import scala.Ordering
 
 /**
  * A query here is an array of words, that form a prefix. So the query
@@ -11,12 +12,12 @@ import scala.collection.mutable
  * order most to least common. Expansions simply remove one item from
  * the end of the list.
  */
-class SearchSourceDataSet(searches: AOLSearchSource) extends BucDataSet[SearchSourceQuery]{
+class SearchSourceDataSet(searches: AOLSearchSource) extends BucDataSet[SearchSourceQuery, Some[Nothing]]{
   override val baseQuery: SearchSourceQuery = SearchSourceQuery(Array())
 
-  override def expansion(query: SearchSourceQuery): Option[Iterator[SearchSourceQuery]] = query.expansion
+  override def expansion(query: SearchSourceQuery, minSupp: Long): Option[Iterator[SearchSourceQuery]] = query.expansion
 
-  override def refinement(query: SearchSourceQuery): Option[Iterator[SearchSourceQuery]] = {
+  override def refinement(query: SearchSourceQuery, minSupp: Long): Option[Iterator[SearchSourceQuery]] = {
     /* Group by the next item in the search, so for
      * the queries "make me a foo", "make me a bar", "make me an ext", "make me an ext", "make me an ear",  "make me two cats",
      * and query: "make me", we get the lists:
@@ -37,7 +38,7 @@ class SearchSourceDataSet(searches: AOLSearchSource) extends BucDataSet[SearchSo
     }
 
     refinementExists match {
-      case true  => Some(groups.toVector.sortBy(_._2).map(_._1).toIterator)
+      case true  => Some(groups.toVector.sortBy(_._2).takeWhile(_._2 >= minSupp).map(_._1).toIterator)
       case false => None
     }
   }
@@ -70,5 +71,21 @@ case class SearchSourceQuery(query: Array[String]) extends AnyVal {
   @inline
   def narrowerQueryExists(forSearch: Search): Boolean = {
     forSearch.searchString.length > query.length
+  }
+}
+
+object SearchSourceQuery {
+  implicit val searchOrdering: Ordering[SearchSourceQuery] = new Ordering[SearchSourceQuery] {
+    override def compare(x: SearchSourceQuery, y: SearchSourceQuery): Int = {
+      val xe = x.query.iterator
+      val ye = y.query.iterator
+
+      while (xe.hasNext && ye.hasNext) {
+        val res = xe.next().compare(ye.next())
+        if (res != 0) return res
+      }
+
+      Ordering.Boolean.compare(xe.hasNext, ye.hasNext)
+    }
   }
 }

@@ -12,10 +12,10 @@ import scala.collection.mutable
  * @tparam Query the query datatype
  * @tparam DataSet the dataset that we run the query over.
  */
-class BucComputation[Query, DataSet <: BucDataSet[Query]]
-  (val dataSet: DataSet, minSupp: Long)
+abstract class BucComputation[Query, DataSet <: BucDataSet[Query, _]]
+  (val dataSet: DataSet, val minSupp: Long)
   (implicit val queryOrdering: Ordering[Query]) {
-  
+
   private val nodeMap: TrieMap[Query, Long] = {
     val result = TrieMap[Query, Long]()
     val queryQueue = new mutable.PriorityQueue[Query]()(queryOrdering)
@@ -27,14 +27,32 @@ class BucComputation[Query, DataSet <: BucDataSet[Query]]
         result += (currentQuery -> numItems)
         // Note - this "foreach" extracts from the Option monad
         // and then sends the list to the query Queue's ++= method.
-        dataSet.refinement(currentQuery) foreach {queryIterator =>
-          val queries = queryIterator.takeWhile{q => dataSet.query(q) >= minSupp}
-          queryQueue ++= queries}
+        dataSet.refinement(currentQuery, minSupp) foreach {
+          queryIterator => queryQueue ++= takeRefinements(queryIterator)
+        }
       }
     }
     result
   }
   def apply(query: Query): Option[Long] = nodeMap.get(query)
+
+  def takeRefinements(refinements: Iterator[Query]): Iterator[Query]
+}
+
+sealed trait BucType
+
+trait KnownQuantityRefiningQuery[Query, DataSet <: BucDataSet[Query, Some[Nothing]]] extends BucType {
+  this: BucComputation[Query, DataSet] =>
+  def takeRefinements(refinements: Iterator[Query]): Iterator[Query] = {
+    refinements.takeWhile{q => dataSet.query(q) >= minSupp}
+  }
+}
+
+trait UnknownQuantityRefiningQuery[Query, DataSet <: BucDataSet[Query, _]] extends BucType {
+  this: BucComputation[Query, DataSet] =>
+  def takeRefinements(refinements: Iterator[Query]): Iterator[Query] = {
+    refinements.filter{q => dataSet.query(q) >= minSupp}
+  }
 }
 
 /**
@@ -42,8 +60,11 @@ class BucComputation[Query, DataSet <: BucDataSet[Query]]
  * query method defined upon the dataset, which must return a count for the
  * number of items that match that query
  * @tparam Query the datatype for the query
+ * @tparam UsesMinSup whether or not this uses the minSup argument. This
+ *                    is an Option type containing the Bottom type. Where the type is Some[Nothing]
+ *                    it means the minSupp argument is used
  */
-trait BucDataSet[Query] {
+trait BucDataSet[Query, UsesMinSup <: Option[Nothing]] {
   /**
    * Run a query over a data set
    * @param query the query to run
@@ -57,22 +78,34 @@ trait BucDataSet[Query] {
    *  query(refinement.head) > query(refinement.tail.head)
    * and so on.
    *
+   * All returned results must have more than minSup
+   * items
+   *
    * If no refinement is possible, then return None.
    * @param query the base query
+   * @param minSupp the minimum number of items needed. If you are using the
+   *                data set with a BucComputation extending KnownQuantityRefiningQuery
+   *                then all the returned Queries must yield at least minSupp items
    * @return an iterator of queries.
    */
-  def refinement(query: Query): Option[Iterator[Query]]
+  def refinement(query: Query, minSupp: Long): Option[Iterator[Query]]
 
   /**
    * Take a query, and return a list of less specific queries
    * in order most to least supported, ie:
    *  query(refinement.head) > query(refinement.tail.head)
-   *  
+   *
+   * All returned results must have more than minSup
+   * items
+   *
    * If no expansion is possible, then return none
    * @param query the base query
+   * @param minSupp the minimum number of items needed. If you are using the
+   *                data set with a BucComputation extending KnownQuantityRefiningQuery
+   *                then all the returned Queries must yield at least minSupp items
    * @return an iterator of queries.
    */
-  def expansion(query: Query): Option[Iterator[Query]]
+  def expansion(query: Query, minSupp: Long): Option[Iterator[Query]]
 
   /**
    * The least specific query.
