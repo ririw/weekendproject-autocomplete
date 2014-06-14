@@ -12,12 +12,12 @@ import scala.Ordering
  * order most to least common. Expansions simply remove one item from
  * the end of the list.
  */
-class SearchSourceDataSet(searches: AOLSearchSource) extends BucDataSet[SearchSourceQuery, Some[Nothing]]{
+class SearchSourceDataSet(searches: AOLSearchSource) extends BucDataSet[SearchSourceQuery] with BucDataSetWithMinSup[SearchSourceQuery] {
   override val baseQuery: SearchSourceQuery = SearchSourceQuery(Array())
 
-  override def expansion(query: SearchSourceQuery, minSupp: Long): Option[Iterator[SearchSourceQuery]] = query.expansion
+  override def expansion(minSupp: Long)(query: SearchSourceQuery): Option[Iterator[SearchSourceQuery]] = query.expansion
 
-  override def refinement(query: SearchSourceQuery, minSupp: Long): Option[Iterator[SearchSourceQuery]] = {
+  override def refinement(minSupp: Long)(query: SearchSourceQuery): Option[Iterator[SearchSourceQuery]] = {
     /* Group by the next item in the search, so for
      * the queries "make me a foo", "make me a bar", "make me an ext", "make me an ext", "make me an ear",  "make me two cats",
      * and query: "make me", we get the lists:
