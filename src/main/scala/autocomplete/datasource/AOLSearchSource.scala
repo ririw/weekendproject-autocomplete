@@ -72,6 +72,6 @@ object AOLSearchSource {
     }
     new AOLSearchSource(args)
   }
-  lazy val productionSearches = searches(Configuration.productionPaths)
-  lazy val testingSearches    = searches(Configuration.testingPaths)
+  def productionSearches() = searches(Configuration.productionPaths)
+  def testingSearches()    = searches(Configuration.testingPaths)
 }
