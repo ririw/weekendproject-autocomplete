@@ -12,7 +12,7 @@ import scala.Ordering
  * the end of the list.
  */
 class SearchSourceDataSet(searches: AOLSearchSource) extends BucDataSet[SearchSourceQuery] with BucDataSetWithMinSup[SearchSourceQuery] {
-  override val baseQuery: SearchSourceQuery = SearchSourceQuery(Array())
+  override val baseQuery: SearchSourceQuery = SearchSourceQuery(List())
 
   /** Expansions are real easy here, we can simply lop off the last word in the query array */
   override def expansion(query: SearchSourceQuery): Option[Iterator[SearchSourceQuery]] = query.expansion
@@ -47,17 +47,17 @@ class SearchSourceDataSet(searches: AOLSearchSource) extends BucDataSet[SearchSo
     children.filter(_._2 >= minSupp)
     children.isEmpty match {
       case true  => None
-      case false => Some(children.keySet.map{s => SearchSourceQuery(s.item.toArray)}.toIterator)
+      case false => Some(children.keySet.map{s => SearchSourceQuery(s.item)}.toIterator)
     }
   }
 
   val prefixTrie = new CountingTrie[String](searches.iterator.map{s => PrefixItem(s.searchString.toList)})
-  override def query(query: SearchSourceQuery): Long = prefixTrie.get(query.query.toList)
+  override def query(query: SearchSourceQuery): Long = prefixTrie.get(PrefixItem(query.query.toList))
 
   //override def query(query: SearchSourceQuery): Long = searches.iterator.count(query.apply)
 }
 
-case class SearchSourceQuery(query: Array[String]) extends AnyVal {
+case class SearchSourceQuery(query: List[String]) extends AnyVal {
   /**
    * Apply a query to a string. This works by matching up all
    * the items in the query, and pairwise-checking that they are
@@ -74,6 +74,8 @@ case class SearchSourceQuery(query: Array[String]) extends AnyVal {
     case 0 => None
     case _ => Some(List(SearchSourceQuery(query.dropRight(1))).toIterator)
   }
+
+  override def toString: String = s"SearchSourceQuery: ${query.toList.toString()}"
 
   /**
    * This method tells the caller whether there exists a finer query
@@ -109,5 +111,9 @@ object SearchSourceQuery {
 
       Ordering.Boolean.compare(xe.hasNext, ye.hasNext)
     }
+  }
+
+  def makeQuery(query: String*): SearchSourceQuery = {
+    SearchSourceQuery(query.toList)
   }
 }

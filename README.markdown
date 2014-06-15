@@ -31,6 +31,8 @@ should be a lot more helpful, because it'll suggest very salient things. I think
   
   * D - design mistake
   * U - Unexpected situation
+  * O - Optimization needed
+  * L - Language error
   
 ### The list!
 
@@ -77,6 +79,21 @@ should be a lot more helpful, because it'll suggest very salient things. I think
     scan approach is too slow. Instead I've created a CountingTrie implementation that may be fast enough. It counts
     things by their prefixes. But the downside of this is that it may blow out the memory when it is used with the 
     much larger production dataset.
+  * Sun Jun 15 18:36:04 EST 2014 - U - aa00f9518967198c1a9997fbadec2309ba5fdc8b: In the previous BUC trie implementation
+    the user could not request the count of an empty key. This was not covered in testing because it seemed like
+    a silly situation. There are three ways I could have caught this earlier
+        1) Enforce that they key not be empty with the type system, then I would have found my error
+        2) Write a test that checks for empty keys, which might have made me think more about them
+        3) The best option would have been to not write the bug in the first place, and have realized
+           that this would need a count later on.
+  * Sun Jun 15 18:58:54 EST 2014 - L - aa00f9518967198c1a9997fbadec2309ba5fdc8b: All this time I've been using Arrays
+    to represent searches. It turns out that Scala won't do a structural comparison on an Array, only object equality.
+    This meant that *none* of my in autocomplete.buc.BucComputation.apply would work, because they'd never do a 
+    structural comparison. The fix was simple - just replace the Array in SearchSourceQuery with a List, which does
+    do a structural compare (and also matches the TrieCounter, and also perhaps better matches the general structure
+    of the problem). Again, java vs scala and identity vs structural comparison was a problem :(
+    
+    
 
 # Acknowledgements
 This was based on the spray easter eggs template from typesafe activator. That shit is like magic.

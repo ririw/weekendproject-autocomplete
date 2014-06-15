@@ -12,10 +12,9 @@ import scala.collection.mutable
  * @tparam Query the query datatype
  * @tparam DataSet the dataset that we run the query over.
  */
-abstract class BucComputation[Query, DataSet <: BucDataSet[Query] with BucDataSetRefinable]
+class BucComputation[Query, DataSet <: BucDataSet[Query] with BucDataSetRefinable]
   (val dataSet: DataSet, val minSupp: Long)
   (implicit val queryOrdering: Ordering[Query]) {
-
   /**
    * This is the method that is used to refine the query. We check on the type of
    * the DataSet, and it it's one that uses minSupp we pass minSupp in and set up
@@ -61,6 +60,7 @@ abstract class BucComputation[Query, DataSet <: BucDataSet[Query] with BucDataSe
       val numItems = dataSet.query(currentQuery)
       if (numItems >= minSupp) {
         result += (currentQuery -> numItems)
+        // println(s"Added query: $currentQuery")
         // Note - this "foreach" extracts from the Option monad
         // and then sends the list to the query Queue's ++= method.
         refineDataSet(currentQuery) foreach {
@@ -102,7 +102,7 @@ sealed trait BucDataSetRefinable
 
 /**
  * This is a version of the dataset that will compute a count of the query when
- * it produces the query itself. As such, it should only return those queries
+ * it produces the query itsexlf. As such, it should only return those queries
  * that meet the minSupp requirement, ie, dataset.apply(query) >= minSupp
  * @tparam Query the query type
  */

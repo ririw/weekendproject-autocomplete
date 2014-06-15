@@ -64,13 +64,17 @@ class CountingTrie[PrefixKey](items: Iterator[PrefixItem[PrefixKey]]) {
     * @param key the item
     * @return the count, or zero for not foun
     */
-  def get(key: List[PrefixKey]): Long = {
-    assert(key.length > 0)
-    val child = trieNodes.get(key.head)
-    child match {
-      case None => 0
-      case Some(n) => traverseToGently(n, key.tail).map(_.count).getOrElse(0)
+  def get(key: PrefixItem[PrefixKey]): Long = {
+    key.item match {
+      case Nil => trieNodes.values.map(_.count).fold(0l)(_ + _)
+      case _ =>
+        val child = trieNodes.get(key.item.head)
+        child match {
+          case None => 0
+          case Some(n) => traverseToGently(n, key.item.tail).map(_.count).getOrElse(0)
+        }
     }
+
   }
 
   /**
@@ -78,15 +82,17 @@ class CountingTrie[PrefixKey](items: Iterator[PrefixItem[PrefixKey]]) {
    * @param key the key to get
    * @return a map from the full prefix item to
    */
-  def directChildrenCounts(key: PrefixItem[PrefixKey]): Map[PrefixItem[PrefixKey], Long] = {
-    assert(key.item.nonEmpty)
-    val child = trieNodes.get(key.item.head)
-    child match {
-      case None => Map()
-      case Some(n) => traverseToGently(n, key.item.tail).
-        map{node => node.children.map{case (k, v) => PrefixItem(key.item ++ List(k)) -> v.count}}.getOrElse(Map())
+  def directChildrenCounts(key: PrefixItem[PrefixKey]): Map[PrefixItem[PrefixKey], Long] =
+    key.item match {
+      case Nil => trieNodes.map{case (k, v) => PrefixItem(List(k)) -> v.count}
+      case _ =>
+        val child = trieNodes.get(key.item.head)
+        child match {
+          case None => Map()
+          case Some(n) => traverseToGently(n, key.item.tail).
+            map{node => node.children.map{case (k, v) => PrefixItem(key.item ++ List(k)) -> v.count}}.getOrElse(Map())
+        }
     }
-  }
 
   /**
    * "Forcibly" traverse a trie. This will always succeed, creating a node
