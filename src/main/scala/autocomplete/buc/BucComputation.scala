@@ -124,7 +124,7 @@ trait BucDataSetWithMinSup[Query] extends BucDataSetRefinable {
  * for the query, so just return all the proposed queries.
  * @tparam Query theq query type
  */
-trait BucDataSetWithoutMinSup[Query] extends BucDataSetRefinable{
+trait BucDataSetWithoutMinSup[Query] extends BucDataSetRefinable {
   /**
    * Refine the query: return a list of more specific queries,
    * regardless of whether they meet the support criteria

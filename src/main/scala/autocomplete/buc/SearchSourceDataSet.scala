@@ -3,6 +3,7 @@ package autocomplete.buc
 import autocomplete.datasource.{Search, AOLSearchSource}
 import scala.collection.mutable
 import scala.Ordering
+import scala.collection.mutable.IndexedSeqOptimized
 
 /**
  * A query here is an array of words, that form a prefix. So the query
@@ -58,6 +59,9 @@ class SearchSourceDataSet(searches: AOLSearchSource) extends BucDataSet[SearchSo
       case false => None
     }
   }
+
+  val prefixTrie = new CountingTrie[String](searches.iterator.map(_.searchString))
+  // override def query(query: SearchSourceQuery): Long = prefixTrie.get(query.query)
 
   override def query(query: SearchSourceQuery): Long = searches.iterator.count(query.apply)
 }

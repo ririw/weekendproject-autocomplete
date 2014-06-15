@@ -3,6 +3,9 @@ package autocomplete.datasource
 import org.scalatest.{Matchers, FlatSpec}
 import org.apache.commons.io.input.AutoCloseInputStream
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.Future
+import java.util.concurrent.TimeUnit
+import scala.concurrent.duration.Duration
 
 class AOLSearchSourceSpec extends FlatSpec with Matchers {
   it should "Read out a couple of test searches" in {
@@ -25,9 +28,9 @@ class AOLSearchSourceSpec extends FlatSpec with Matchers {
     assert(firstTestResult(0) == "rentdirect.com")
     search.close()
   }
-  it should "Read out 100000 items from the test searches" in {
+  it should "Read out 1000000 items from the test searches" in {
     val search = AOLSearchSource.testingSearches()
-    assert(search.iterator.toStream.length == 100000)
+    assert(search.iterator.toStream.length == 1000000)
   }
 
   it should "close the file when it traverses it" in {
