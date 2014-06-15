@@ -83,9 +83,9 @@ should be a lot more helpful, because it'll suggest very salient things. I think
     the user could not request the count of an empty key. This was not covered in testing because it seemed like
     a silly situation. There are three ways I could have caught this earlier
         
-    1) Enforce that they key not be empty with the type system, then I would have found my error
-    2) Write a test that checks for empty keys, which might have made me think more about them
-    3) The best option would have been to not write the bug in the first place, and have realized
+    1. Enforce that they key not be empty with the type system, then I would have found my error
+    2. Write a test that checks for empty keys, which might have made me think more about them
+    3. The best option would have been to not write the bug in the first place, and have realized
        that this would need a count later on.
        
   * Sun Jun 15 18:58:54 EST 2014 - L - aa00f9518967198c1a9997fbadec2309ba5fdc8b: All this time I've been using Arrays
