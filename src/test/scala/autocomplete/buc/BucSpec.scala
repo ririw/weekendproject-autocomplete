@@ -6,19 +6,15 @@ import autocomplete.datasource.AOLSearchSource
 class BucSpec extends FlatSpec with Matchers {
   val searchDataSet: AOLSearchSource = AOLSearchSource.testingSearches()
   val searches: SearchSourceDataSet = new SearchSourceDataSet(searchDataSet)
-
-  it should "Initalize without crashing" in {
+  var buc: BucComputation[SearchSourceQuery, SearchSourceDataSet] =
     new BucComputation[SearchSourceQuery, SearchSourceDataSet](searches, 3)
-  }
 
   it should "have some items" in {
-    val buc = new BucComputation[SearchSourceQuery, SearchSourceDataSet](searches, 2)
-    val result = buc(SearchSourceQuery.makeQuery("myocutaneous", "flap"))
+    val result = buc.apply(SearchSourceQuery.makeQuery("myocutaneous", "flap"))
     result should not be None
     result.get should be > 0l
   }
   it should "Give some refinements" in {
-    val buc = new BucComputation[SearchSourceQuery, SearchSourceDataSet](searches, 2)
     val grossQuery = SearchSourceQuery.makeQuery("myocutaneous", "flap")
     val result = buc.getRefinements(grossQuery)
     result should not be None
@@ -28,5 +24,13 @@ class BucSpec extends FlatSpec with Matchers {
       println(refinement)
     }
   }
-
+  it should "Super break with production data" in {
+    val searchDataSetP: AOLSearchSource = AOLSearchSource.productionSearches()
+    val searchesP: SearchSourceDataSet = new SearchSourceDataSet(searchDataSetP)
+    var bucP: BucComputation[SearchSourceQuery, SearchSourceDataSet] =
+      new BucComputation[SearchSourceQuery, SearchSourceDataSet](searchesP, 10)
+    val result = buc.apply(SearchSourceQuery.makeQuery())
+    result should not be None
+    result.get should be > 0l
+  }
 }

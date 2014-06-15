@@ -15,6 +15,8 @@
  * That dataset is not included, because licencing and whatever
  * The suggestions should be nice and quick. One server should be able to (ideally) handle about 1K requests per second
  * The suggestions should run with only 4GB of ram, so we need to be careful not to include too many.
+  * Edit: It turns out that the in-memory version, accessible at aa00f9518967198c1a9997fbadec2309ba5fdc8b, can work
+    with 16GB of memory quite happily! So I'm changing this reqirement from 4GB to 16GB.
 
 ## Algorithm
  There will actually be two algorithms. The first is a prefix one, which suggests the next most probably suggestions given a
