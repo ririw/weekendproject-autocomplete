@@ -93,6 +93,16 @@ case class SearchSourceQuery(query: List[String]) extends AnyVal {
   def narrowerQueryExists(forSearch: Search): Boolean = {
     forSearch.searchString.length > query.length
   }
+
+  /** Whether this query "contains" another, meaning that this
+    * query is MORE GENERAL than another
+    * @param anotherQuery the possibly less general query
+    * @return
+    */
+  def contains(anotherQuery: SearchSourceQuery): Boolean = {
+    anotherQuery.query.length >= this.query.length &&
+      anotherQuery.query.zip(this.query).forall{case (a, b) => a == b}
+  }
 }
 
 object SearchSourceQuery {

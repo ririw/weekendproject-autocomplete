@@ -72,6 +72,23 @@ class BucComputation[Query, DataSet <: BucDataSet[Query] with BucDataSetRefinabl
   }
   /** Apply a query, either getting the count for it, or None if it is below minSupp */
   def apply(query: Query): Option[Long] = nodeMap.get(query)
+
+  /** If a query meets the minimum support requirement, then return all the refinements
+    * of this query, and the count for that refinement
+    * @param query the query to refine
+    * @return
+    */
+  def getRefinements(query: Query): Option[Iterator[(Query, Long)]] = {
+    if (nodeMap.contains(query)) {
+      refineDataSet(query).map {
+        refinementQueries => refinementQueries.flatMap {
+          refinedQuery => nodeMap.get(refinedQuery).map(refinedQuery -> _)
+        }
+      }
+    } else {
+      None
+    }
+  }
 }
 
 /**

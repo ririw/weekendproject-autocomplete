@@ -17,4 +17,16 @@ class BucSpec extends FlatSpec with Matchers {
     result should not be None
     result.get should be > 0l
   }
+  it should "Give some refinements" in {
+    val buc = new BucComputation[SearchSourceQuery, SearchSourceDataSet](searches, 2)
+    val grossQuery = SearchSourceQuery.makeQuery("myocutaneous", "flap")
+    val result = buc.getRefinements(grossQuery)
+    result should not be None
+    for ((refinement, count) <- result.get) {
+      grossQuery.contains(refinement) should be(true)
+      count should be >= 2l
+      println(refinement)
+    }
+  }
+
 }
