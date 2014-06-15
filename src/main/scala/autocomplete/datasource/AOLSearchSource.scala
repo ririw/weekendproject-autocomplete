@@ -2,6 +2,7 @@ package autocomplete.datasource
 
 import java.io.{FileInputStream, InputStream}
 import java.util.zip.GZIPInputStream
+import org.apache.commons.io.input.AutoCloseInputStream
 
 /**
  * This is for AOL's searches, which take format:
@@ -11,11 +12,14 @@ import java.util.zip.GZIPInputStream
  * Note - do not close the input streams until all the processing is done. For
  * obvious reasons, these are lazy data structures.
  *
- * The parameter is a list of inputstreams and close methods.
+ * The parameter is a list of functions that yield AutoCloseInputStream, ie, that
+ * yield iterators into the data set. Note that there is potential for a memory leak/file pointer leak
+ * here if you don't finish iterating over the data sets, so always do that.
  */
-class AOLSearchSource(inputs: List[(InputStream, () => Unit)]) extends SearchSource[Search] with ErrorSource[SearchFailure] {
-  override def iterator(): Iterator[Search] = inputs.toIterator.flatMap { input =>
-    val results = scala.io.Source.fromInputStream(input._1).getLines().map(stringToSearch)
+class AOLSearchSource(inputs: List[() => AutoCloseInputStream]) extends SearchSource[Search] with ErrorSource[SearchFailure] {
+  override def iterator: Iterator[Search] = inputs.toIterator.flatMap { input =>
+    val thisStream = input()
+    val results = scala.io.Source.fromInputStream(thisStream).getLines().map(stringToSearch)
     results.flatMap{r => r.right.toOption}
   }
 
@@ -32,15 +36,14 @@ class AOLSearchSource(inputs: List[(InputStream, () => Unit)]) extends SearchSou
     other(this)
   }
 
-  /**
-   * The close method here will call the input's close method.
-   */
-  override def close(): Unit = inputs.foreach{_._2()}
-
   override def errorIterator: Iterator[SearchFailure] = inputs.toIterator.flatMap { input =>
-    val results = scala.io.Source.fromInputStream(input._1).getLines().map(stringToSearch)
+    val thisStream = input()
+    val results = scala.io.Source.fromInputStream(thisStream).getLines().map(stringToSearch)
     results.flatMap{r => r.left.toOption}
   }
+
+  // Should be covered by AutoCloseInputStream.
+  override def close(): Unit = Unit
 }
 
 /**
@@ -63,15 +66,26 @@ case class Search(searchString: Array[String]) extends AnyVal
 object AOLSearchSource {
   def searches(searchSource: List[String]) = {
     val args = searchSource.map {
-      path =>
-        val fileStream = new FileInputStream(path)
-        val gzipStream = new GZIPInputStream(fileStream)
-        (gzipStream, {() =>
-          gzipStream.close()
-          fileStream.close()})
+      path => () => new AutoCloseInputStream(new GzipInputFileStream(path)) with AutoCloseable
     }
     new AOLSearchSource(args)
   }
   def productionSearches() = searches(Configuration.productionPaths)
   def testingSearches()    = searches(Configuration.testingPaths)
+}
+
+class GzipInputFileStream(path: String) extends InputStream {
+  val fileStream = new FileInputStream(path)
+  val gzipStream = new GZIPInputStream(fileStream)
+  override def read(): Int = gzipStream.read()
+  override def read(b: Array[Byte], off: Int, len: Int): Int = gzipStream.read(b, off, len)
+  override def skip(n: Long): Long = gzipStream.skip(n)
+  override def available(): Int = gzipStream.available()
+  override def close() {
+    gzipStream.close()
+    fileStream.close()
+  }
+  override def mark(readLimit: Int) {gzipStream.mark(readLimit)}
+  override def reset() {gzipStream.reset()}
+  override def markSupported: Boolean = {gzipStream.markSupported()}
 }

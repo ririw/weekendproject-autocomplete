@@ -46,7 +46,7 @@ class SearchSourceDataSet(searches: AOLSearchSource) extends BucDataSet[SearchSo
      */
     val groups = mutable.HashMap[SearchSourceQuery, Long]()
     var refinementExists = false
-    for (search <- searches.iterator() if query.apply(search) && query.narrowerQueryExists(search)) {
+    for (search <- searches.iterator if query.apply(search) && query.narrowerQueryExists(search)) {
       val newSearch = SearchSourceQuery(search.searchString.take(query.query.length + 1))
       val newCount = groups.getOrElse(newSearch, 0l) + 1l
       groups += (newSearch -> newCount)
@@ -59,7 +59,7 @@ class SearchSourceDataSet(searches: AOLSearchSource) extends BucDataSet[SearchSo
     }
   }
 
-  override def query(query: SearchSourceQuery): Long = searches.iterator().count(query.apply)
+  override def query(query: SearchSourceQuery): Long = searches.iterator.count(query.apply)
 }
 
 case class SearchSourceQuery(query: Array[String]) extends AnyVal {

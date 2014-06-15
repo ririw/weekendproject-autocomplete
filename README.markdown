@@ -66,7 +66,13 @@ should be a lot more helpful, because it'll suggest very salient things. I think
         Zipped: (Build, Build), (a, a)
     
     The solution is simple: just make the search is at least as long as the query.
-    
+  * Sun Jun 15 12:01:17 EST 2014 - 9204accc628afcc9739c3ad306c3ec5b012ad8d6 - U: I didn't realize that input streams 
+    were so thoroughly un-resettable, so I discovered I couldn't iterate over the data set more than once. This was
+    not picked up in earlier tests because they never checked for things twice. I've updated the tests and now I
+    use a function yielding org.apache.commons.io.input.AutoCloseInputStream as the argument to AOLSearchSource, 
+    which simplifies the AOLSearchSource and also solves a bunch of these problems. Although it still isn't quite 
+    satisfactory, because it requires the user to fully traverse an iterator before closing it, which still may
+    cause file pointer leaks
 
 # Acknowledgements
 This was based on the spray easter eggs template from typesafe activator. That shit is like magic.
