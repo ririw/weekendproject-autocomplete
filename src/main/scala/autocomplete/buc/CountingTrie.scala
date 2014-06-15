@@ -1,11 +1,33 @@
 package autocomplete.buc
 
 import scala.annotation.tailrec
-import scala.collection.{MapLike, mutable}
+import scala.collection.{mutable, MapLike}
 
-class CountingTrie[PrefixKey](items: Iterator[Array[PrefixKey]]) {
-  private val heads = new mutable.HashMap[PrefixKey, MTrieNode]()
-  items.foreach(item => addKey(item.toList))
+/**
+ * This is a counting map, based around a prefix trie.
+ * It will build up a representation long these lines:
+ *
+ *    For input: [a,b], [a,c], [a,c], [b,c]
+ *
+ *                               /-- ('b', 1)
+ *             /--- ('a', 3) --<
+ *    root --<                  \--- ('c', 2)
+ *            \
+ *             \------ ('b', 1) ---\
+ *                                  \----- ('c', 1)
+ *
+ * Note that each node of the prefix trie carries the sum of all its
+ * children.
+ *
+ * It operates on lists of prefixes, because their (item :: item :: Nil)
+ * structure matches the recursive insertion operations done internally.
+ *
+ * @param items a list of items to insert into the trie
+ * @tparam PrefixKey the type for each item in the prefix.
+ */
+class CountingTrie[PrefixKey](items: Iterator[PrefixItem[PrefixKey]]) {
+  private val heads: mutable.HashMap[PrefixKey, MTrieNode] = new mutable.HashMap[PrefixKey, MTrieNode]()
+  items.foreach(item => addKey(item.item))
 
   def addKey(key: List[PrefixKey]) {
     assert(key.length > 0)
@@ -21,7 +43,14 @@ class CountingTrie[PrefixKey](items: Iterator[Array[PrefixKey]]) {
     traverseToForciblyAndIncrement(nextNode, key.tail)
   }
 
-  val trieNodes = heads.map{case (k, v) => k -> v.freeze()}.toMap
+  /** The nodes in the trie */
+  val trieNodes: Map[PrefixKey, FTrieNode] = heads.map{case (k, v) => k -> v.freeze()}.toMap
+
+  /**
+    * Get the count for an item
+    * @param key the item
+    * @return the count, or zero for not foun
+    */
   def get(key: List[PrefixKey]): Long = {
     assert(key.length > 0)
     val child = trieNodes.get(key.head)
@@ -31,13 +60,18 @@ class CountingTrie[PrefixKey](items: Iterator[Array[PrefixKey]]) {
     }
   }
 
-  def directChildrenCounts(key: List[PrefixKey]): Map[List[PrefixKey], Long] = {
-    assert(key.length > 0)
-    val child = trieNodes.get(key.head)
+  /**
+   * Get the counts for all the direct children, ie, only direct decendants
+   * @param key the key to get
+   * @return a map from the full prefix item to
+   */
+  def directChildrenCounts(key: PrefixItem[PrefixKey]): Map[PrefixItem[PrefixKey], Long] = {
+    assert(key.item.nonEmpty)
+    val child = trieNodes.get(key.item.head)
     child match {
       case None => Map()
-      case Some(n) => traverseToGently(n, key.tail).
-        map{node => node.children.map{case (k, v) => key ++ List(k) -> v.count}}.getOrElse(Map())
+      case Some(n) => traverseToGently(n, key.item.tail).
+        map{node => node.children.map{case (k, v) => PrefixItem(key.item ++ List(k)) -> v.count}}.getOrElse(Map())
     }
   }
   @inline
@@ -86,3 +120,5 @@ class CountingTrie[PrefixKey](items: Iterator[Array[PrefixKey]]) {
     lazy val childrenMap = children
   }
 }
+
+case class PrefixItem[A](item: List[A]) extends AnyVal

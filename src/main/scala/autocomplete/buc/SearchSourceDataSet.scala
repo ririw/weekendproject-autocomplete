@@ -43,15 +43,15 @@ class SearchSourceDataSet(searches: AOLSearchSource) extends BucDataSet[SearchSo
      *
      * We also order this from most to least common, as they are above.
      */
-    val children = prefixTrie.directChildrenCounts(query.query.toList)
+    val children = prefixTrie.directChildrenCounts(PrefixItem(query.query.toList))
     children.filter(_._2 >= minSupp)
     children.isEmpty match {
       case true  => None
-      case false => Some(children.keySet.map{s => SearchSourceQuery(s.toArray)}.toIterator)
+      case false => Some(children.keySet.map{s => SearchSourceQuery(s.item.toArray)}.toIterator)
     }
   }
 
-  val prefixTrie = new CountingTrie[String](searches.iterator.map(_.searchString))
+  val prefixTrie = new CountingTrie[String](searches.iterator.map{s => PrefixItem(s.searchString.toList)})
   override def query(query: SearchSourceQuery): Long = prefixTrie.get(query.query.toList)
 
   //override def query(query: SearchSourceQuery): Long = searches.iterator.count(query.apply)
