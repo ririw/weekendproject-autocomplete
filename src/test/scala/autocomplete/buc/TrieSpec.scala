@@ -14,6 +14,8 @@ class TrieSpec extends FlatSpec with Matchers {
     t.get(List(1,2,3)) should be(2)
     t.get(List(1,2)) should be(3)
     t.get(List(4)) should be(1)
-    t.get(List(1,2,4)) should be(0 )
+    t.get(List(1,2,4)) should be(0)
+    t.directChildrenCounts(List(1,2)).keySet should be(Set(List(1,2,3)))
+    t.directChildrenCounts(List(1,2)).values.toSet should be(Set(2))
   }
 }
