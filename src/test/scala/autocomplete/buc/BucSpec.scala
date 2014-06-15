@@ -2,11 +2,13 @@ package autocomplete.buc
 
 import org.scalatest.{Matchers, FlatSpec}
 import autocomplete.datasource.AOLSearchSource
+import com.codahale.metrics.ConsoleReporter
+import java.util.concurrent.TimeUnit
 
 class BucSpec extends FlatSpec with Matchers {
   val searchDataSet: AOLSearchSource = AOLSearchSource.testingSearches()
   val searches: SearchSourceDataSet = new SearchSourceDataSet(searchDataSet)
-  var buc: BucComputation[SearchSourceQuery, SearchSourceDataSet] =
+  val buc: BucComputation[SearchSourceQuery, SearchSourceDataSet] =
     new BucComputation[SearchSourceQuery, SearchSourceDataSet](searches, 3)
 
   it should "have some items" in {
@@ -24,7 +26,7 @@ class BucSpec extends FlatSpec with Matchers {
       println(refinement)
     }
   }
-  it should "Super break with production data" in {
+  it should "Super break with production data" ignore {
     val searchDataSetP: AOLSearchSource = AOLSearchSource.productionSearches()
     val searchesP: SearchSourceDataSet = new SearchSourceDataSet(searchDataSetP)
     var bucP: BucComputation[SearchSourceQuery, SearchSourceDataSet] =
@@ -32,5 +34,32 @@ class BucSpec extends FlatSpec with Matchers {
     val result = buc.apply(SearchSourceQuery.makeQuery())
     result should not be None
     result.get should be > 0l
+  }
+
+  it should "Benchmark ok" in {
+    val searchDataSetP: AOLSearchSource = AOLSearchSource.productionSearches()
+    val searchesP: SearchSourceDataSet = new SearchSourceDataSet(searchDataSetP)
+    var bucP: BucComputation[SearchSourceQuery, SearchSourceDataSet] =
+      new BucComputation[SearchSourceQuery, SearchSourceDataSet](searchesP, 10)
+    val result = buc.apply(SearchSourceQuery.makeQuery())
+
+    result should not be None
+    result.get should be > 0l
+
+
+    import com.codahale.metrics.MetricRegistry
+    val metricsRegistry = new MetricRegistry()
+    val reporter = ConsoleReporter.forRegistry(metricsRegistry)
+      .convertRatesTo(TimeUnit.SECONDS)
+      .convertDurationsTo(TimeUnit.MILLISECONDS)
+      .build()
+    reporter.start(3, TimeUnit.SECONDS)
+
+    val meter = metricsRegistry.meter("RPS")
+    val miniDataSet = searchDataSet.iterator
+    for (query <- miniDataSet) {
+      bucP.apply(SearchSourceQuery(query.searchString))
+      meter.mark()
+    }
   }
 }

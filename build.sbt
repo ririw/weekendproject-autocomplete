@@ -25,7 +25,8 @@ libraryDependencies ++= {
     "org.scalatest"               %%  "scalatest"           % "2.0"   % "test",
     "junit"                       %   "junit"               % "4.11"  % "test",
     "org.specs2"                  %%  "specs2"              % "2.2.3" % "test",
-    "org.apache.directory.studio" % "org.apache.commons.io" % "2.4"
+    "org.apache.directory.studio" % "org.apache.commons.io" % "2.4",
+    "com.codahale.metrics"        % "metrics-core"          % "3.0.2"
   )
 }
 

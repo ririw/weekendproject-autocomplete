@@ -51,8 +51,8 @@ class SearchSourceDataSet(searches: AOLSearchSource) extends BucDataSet[SearchSo
     }
   }
 
-  val prefixTrie = new CountingTrie[String](searches.iterator.map{s => PrefixItem(s.searchString.toList)})
-  override def query(query: SearchSourceQuery): Long = prefixTrie.get(PrefixItem(query.query.toList))
+  val prefixTrie = new CountingTrie[String](searches.iterator.map{s => PrefixItem(s.searchString)})
+  override def query(query: SearchSourceQuery): Long = prefixTrie.get(PrefixItem(query.query))
 
   //override def query(query: SearchSourceQuery): Long = searches.iterator.count(query.apply)
 }

@@ -17,6 +17,7 @@
  * The suggestions should run with only 4GB of ram, so we need to be careful not to include too many.
   * Edit: It turns out that the in-memory version, accessible at aa00f9518967198c1a9997fbadec2309ba5fdc8b, can work
     with 16GB of memory quite happily! So I'm changing this reqirement from 4GB to 16GB.
+    This runs at a comfortable 399774.73 queries per second on my machine (which has 16GB ram).
 
 ## Algorithm
  There will actually be two algorithms. The first is a prefix one, which suggests the next most probably suggestions given a
@@ -96,7 +97,12 @@ should be a lot more helpful, because it'll suggest very salient things. I think
     structural comparison. The fix was simple - just replace the Array in SearchSourceQuery with a List, which does
     do a structural compare (and also matches the TrieCounter, and also perhaps better matches the general structure
     of the problem). Again, java vs scala and identity vs structural comparison was a problem :(
-    
+
+# Discoveries
+## Memory use profiling
+Is the best. Until commit a4cb562abb6ece54c2b49abaaba3f1548a08e150, I was using a priority queue to queue queries.
+This was ok, but it meant creating huge numbers of scala.math.Ordering.Ops. By switching to a normal Queue, and doing
+away with the ordering, I cut down quite noticably on GC time.
     
 
 # Acknowledgements

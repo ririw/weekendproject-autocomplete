@@ -53,7 +53,7 @@ class BucComputation[Query, DataSet <: BucDataSet[Query] with BucDataSetRefinabl
    */
   protected val nodeMap: TrieMap[Query, Long] = {
     val result = TrieMap[Query, Long]()
-    val queryQueue = new mutable.PriorityQueue[Query]()(queryOrdering)
+    val queryQueue = new mutable.Queue[Query]()
     queryQueue += dataSet.baseQuery
     while (queryQueue.nonEmpty) {
       val currentQuery = queryQueue.dequeue()

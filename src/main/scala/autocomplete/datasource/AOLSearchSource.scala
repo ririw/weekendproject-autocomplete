@@ -29,7 +29,7 @@ class AOLSearchSource(inputs: List[() => AutoCloseInputStream]) extends SearchSo
       println(SearchFailure(search))
       Left(SearchFailure(search))
     } else {
-      Right(Search(splitSearch.apply(1).split(' ')))
+      Right(Search(splitSearch.apply(1).split(' ').toList))
     }
   }
   override def ~>[Next, SourceNext <: SearchSource[Next]](other: (SearchSource[Search]) => SourceNext): SourceNext = {
@@ -61,7 +61,7 @@ case class SearchFailure(search: String) extends AnyVal
  * The successful case.
  * @param searchString the list of search terms.
  */
-case class Search(searchString: Array[String]) extends AnyVal
+case class Search(searchString: List[String]) extends AnyVal
 
 object AOLSearchSource {
   def searches(searchSource: List[String]) = {
