@@ -30,6 +30,16 @@ class CountingTrie[PrefixKey](items: Iterator[Array[PrefixKey]]) {
       case Some(n) => traverseToGently(n, key.tail).map(_.count).getOrElse(0)
     }
   }
+
+  def directChildrenCounts(key: List[PrefixKey]): Map[List[PrefixKey], Long] = {
+    assert(key.length > 0)
+    val child = trieNodes.get(key.head)
+    child match {
+      case None => Map()
+      case Some(n) => traverseToGently(n, key.tail).
+        map{node => node.children.map{case (k, v) => key ++ List(k) -> v.count}}.getOrElse(Map())
+    }
+  }
   @inline
   def compareNode(node: TrieNode[_], to: PrefixKey): Boolean = node.key == to
 

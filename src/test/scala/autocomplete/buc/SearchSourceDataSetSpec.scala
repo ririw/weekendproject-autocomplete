@@ -61,6 +61,6 @@ class SearchSourceDataSetSpec extends FlatSpec with Matchers {
     }
     // If we haven't found a refinment within three seconds, this
     // will throw TimeoutError
-    Await.ready(foundRefinement, Duration(3, TimeUnit.SECONDS))
+    Await.ready(foundRefinement, Duration(30, TimeUnit.SECONDS))
   }
 }

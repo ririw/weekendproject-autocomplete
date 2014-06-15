@@ -1,9 +1,7 @@
 package autocomplete.buc
 
 import autocomplete.datasource.{Search, AOLSearchSource}
-import scala.collection.mutable
 import scala.Ordering
-import scala.collection.mutable.IndexedSeqOptimized
 
 /**
  * A query here is an array of words, that form a prefix. So the query
@@ -45,25 +43,18 @@ class SearchSourceDataSet(searches: AOLSearchSource) extends BucDataSet[SearchSo
      *
      * We also order this from most to least common, as they are above.
      */
-    val groups = mutable.HashMap[SearchSourceQuery, Long]()
-    var refinementExists = false
-    for (search <- searches.iterator if query.apply(search) && query.narrowerQueryExists(search)) {
-      val newSearch = SearchSourceQuery(search.searchString.take(query.query.length + 1))
-      val newCount = groups.getOrElse(newSearch, 0l) + 1l
-      groups += (newSearch -> newCount)
-      refinementExists = true
-    }
-
-    refinementExists match {
-      case true  => Some(groups.toIterator.filter(_._2 >= minSupp).map(_._1))
-      case false => None
+    val children = prefixTrie.directChildrenCounts(query.query.toList)
+    children.filter(_._2 >= minSupp)
+    children.isEmpty match {
+      case true  => None
+      case false => Some(children.keySet.map{s => SearchSourceQuery(s.toArray)}.toIterator)
     }
   }
 
   val prefixTrie = new CountingTrie[String](searches.iterator.map(_.searchString))
-  // override def query(query: SearchSourceQuery): Long = prefixTrie.get(query.query)
+  override def query(query: SearchSourceQuery): Long = prefixTrie.get(query.query.toList)
 
-  override def query(query: SearchSourceQuery): Long = searches.iterator.count(query.apply)
+  //override def query(query: SearchSourceQuery): Long = searches.iterator.count(query.apply)
 }
 
 case class SearchSourceQuery(query: Array[String]) extends AnyVal {
