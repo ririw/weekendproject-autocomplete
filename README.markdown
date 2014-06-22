@@ -19,6 +19,12 @@
     with 16GB of memory quite happily! So I'm changing this reqirement from 4GB to 16GB.
     This runs at a comfortable 399774.73 queries per second on my machine (which has 16GB ram).
 
+## Status
+ * Working!
+  * Run "./activator run" to run with the test set
+  * Or: edit server/Server.scala:11 and replace "testSearches" with "productionSearches", and then run with "./activator -mem 10000 run"
+  * Also run a webserver, "cd frontent; python -m SimpleHTTPServer
+
 ## Algorithm
  There will actually be two algorithms. The first is a prefix one, which suggests the next most probably suggestions given a
 string. The second kicks in when the first has no suggestions, and suggests words based on the existing bag of words in the
@@ -36,6 +42,7 @@ should be a lot more helpful, because it'll suggest very salient things. I think
   * U - Unexpected situation
   * O - Optimization needed
   * L - Language error
+   * Lw - for web languages (CSS, HTML, JS etc)
   
 ### The list!
 
@@ -97,6 +104,12 @@ should be a lot more helpful, because it'll suggest very salient things. I think
     structural comparison. The fix was simple - just replace the Array in SearchSourceQuery with a List, which does
     do a structural compare (and also matches the TrieCounter, and also perhaps better matches the general structure
     of the problem). Again, java vs scala and identity vs structural comparison was a problem :(
+  * Mon Jun 23 00:02:37 EST 2014 - Lw - 89c19a30c8d4c7d7b485452ea1dfd670bfd1650a: Didn't call angular's refresh
+    function from inside a callback, so searches wouldn't update. Still learning angular, and it's not 100% magic, and
+    therefore can't cover _every_ change
+  * Mon Jun 23 00:02:37 EST 2014 - Lw - 89c19a30c8d4c7d7b485452ea1dfd670bfd1650a: Used the textContent attribute, to 
+    pull in a suggestion, so of course later on this text content came with heaps of accidental whitespace and that 
+    looked dumb.
 
 # Discoveries
 ## Memory use profiling

@@ -16,7 +16,7 @@ body {
 .textbox {
     border: 1px solid #c4c4c4;
     height: 60px;
-    width: 80%;
+    width: 800px;
     font-size: 40px;
     padding: 4px 4px 4px 12px;
     box-shadow: 0 0 5px #d9d9d9 inset;
@@ -31,7 +31,7 @@ body {
 
 .suggestion {
     line-height: 150%;
-    width:100%;
+    width: 816px;
     font-family: sans-serif;
     font-size: 40px;
     background-color: white;
@@ -49,5 +49,5 @@ body {
     height: 70px;
     /* vertical-align: middle; */
     position: relative;
-    top: 20px;
+    top: 23px;
 }

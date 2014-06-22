@@ -7,13 +7,17 @@
 function SearchController($scope, $http) {
     $scope.suggestions = [];
     $scope.timer = null;
-    $scope.socket = new WebSocket("ws://localhost:8080");
-    $scope.socket.onmessage = function(event) {
-        var data = JSON.parse(event.data);
-        $scope.suggestions = data.results;
-    };
+
     var search_timer = 100;
 
+    $scope.onWsMessage = function(event) {
+        var data = JSON.parse(event.data);
+        $scope.suggestions = data.results;
+        $scope.$apply();
+    };
+
+    $scope.socket = new WebSocket("ws://localhost:8080");
+    $scope.socket.onmessage = $scope.onWsMessage;
 
     /**
      * This is called whenever the search field is updated.
@@ -52,7 +56,8 @@ function SearchController($scope, $http) {
      * @param search
      */
     $scope.send_search = function(search) {
-        if ($scope.socket.readyState = WebSocket.OPEN) {
+        console.log("Send search: " + search);
+        if ($scope.socket.readyState == WebSocket.OPEN) {
             $scope.socket.send(search)
         } else {
             console.log("Using HTTP");
@@ -72,7 +77,7 @@ function SearchController($scope, $http) {
      * as the value to set the search to.
      */
     $scope.use_suggestion = function($event){
-        $scope.search = $event.currentTarget.textContent;
+        $scope.search = $event.currentTarget.textContent.trim();
         $scope.send_search($scope.search);
     };
 
