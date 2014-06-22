@@ -7,11 +7,20 @@
 </head>
 <body>
 <div id="centerdiv" ng-controller="SearchController">
-    <form ng-submit="newsearch()">
-    <input class="textbox" type="text" ng-model="search" ng-keyup="newsearch()" ng-change="newsearch()" placeholder="Search">
-        <div class="suggestion" ng-show="showsearch()">
-            <ul class="nonlist" id="suggestion-container" ng-repeat="suggest in suggestions">
-                <li ng-click="usesuggestion($event)">{{suggest}}</li>
+    <form ng-submit="new_search()">
+    <input class="textbox"
+           type="text"
+           ng-model="search"
+           ng-keyup="new_search()"
+           ng-change="new_search()"
+           placeholder="Search">
+        <div class="suggestion" ng-show="show_search()">
+            <ul class="nonlist"
+                id="suggestion-container"
+                ng-repeat="suggest in suggestions">
+                <li ng-click="use_suggestion($event)">
+                    {{suggest}}
+                </li>
             </ul>
         </div>
     </form>
