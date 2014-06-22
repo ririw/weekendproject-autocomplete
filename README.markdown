@@ -110,6 +110,7 @@ should be a lot more helpful, because it'll suggest very salient things. I think
   * Mon Jun 23 00:02:37 EST 2014 - Lw - 89c19a30c8d4c7d7b485452ea1dfd670bfd1650a: Used the textContent attribute, to 
     pull in a suggestion, so of course later on this text content came with heaps of accidental whitespace and that 
     looked dumb.
+  * Mon Jun 23 00:02:37 EST 2014 - Lots of messing around in HTML, not worth mentioning.
 
 # Discoveries
 ## Memory use profiling
