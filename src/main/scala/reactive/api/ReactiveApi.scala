@@ -6,8 +6,8 @@ import reactive.socket.SocketService
 import akka.actor.{ ActorSystem, Props }
 import akka.event.Logging.InfoLevel
 import spray.http.HttpRequest
-import spray.http.StatusCodes.{ MovedPermanently, NotFound }
-import spray.routing.{Directives, RouteConcatenation}
+import spray.http.StatusCodes.NotFound
+import spray.routing.{RequestContext, Directives, RouteConcatenation}
 import spray.routing.directives.LogEntry
 
 trait AbstractSystem {
@@ -40,6 +40,10 @@ trait StaticRoute extends Directives {
     } ~
     pathPrefix("css") {
       getFromResourceDirectory("css/")
+    } ~
+    path("search") {context: RequestContext =>
+      context
+      getFromResource("search.html")
     } ~
     pathEndOrSingleSlash {
       getFromResource("index.html")

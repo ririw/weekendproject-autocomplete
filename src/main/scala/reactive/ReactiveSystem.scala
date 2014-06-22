@@ -7,7 +7,7 @@ import akka.io.{IO, Tcp}
 import java.net.InetSocketAddress
 import spray.can.Http
 
-object ReactiveSystem extends App with MainActors with ReactiveApi {
+object ReactiveSystem extends MainActors with ReactiveApi {
   implicit lazy val system = ActorSystem("reactive-system")
   private val rs = new ReactiveServer(Configuration.portWs)
   rs.forResource("/find/ws", Some(find))
