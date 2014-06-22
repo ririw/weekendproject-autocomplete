@@ -8,7 +8,7 @@
 <body>
 <div id="centerdiv" ng-controller="SearchController">
     <form ng-submit="newsearch()">
-    <input class="textbox" type="text" ng-model="search" ng-keyup="newsearch()" placeholder="Search">
+    <input class="textbox" type="text" ng-model="search" ng-keyup="newsearch()" ng-change="newsearch()" placeholder="Search">
         <div class="suggestion" ng-show="showsearch()">
             <ul class="nonlist" id="suggestion-container" ng-repeat="suggest in suggestions">
                 <li ng-click="usesuggestion($event)">{{suggest}}</li>
