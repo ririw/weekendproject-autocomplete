@@ -7,7 +7,13 @@
 function SearchController($scope, $http) {
     $scope.suggestions = [];
     $scope.timer = null;
-    var search_timer = 250;
+    $scope.socket = new WebSocket("ws://localhost:8080");
+    $scope.socket.onmessage = function(event) {
+        var data = JSON.parse(event.data);
+        $scope.suggestions = data.results;
+    };
+    var search_timer = 100;
+
 
     /**
      * This is called whenever the search field is updated.
@@ -46,10 +52,15 @@ function SearchController($scope, $http) {
      * @param search
      */
     $scope.send_search = function(search) {
-        $http.get('http://localhost:8080/search', { params: {q: search} }).success(
-        function(data, status, headers, config){
-            $scope.suggestions = data.results
-        });
+        if ($scope.socket.readyState = WebSocket.OPEN) {
+            $scope.socket.send(search)
+        } else {
+            console.log("Using HTTP");
+            $http.get('http://localhost:8080/search', { params: {q: search} }).success(
+                function (data, status, headers, config) {
+                    $scope.suggestions = data.results
+                });
+        }
     };
 
     /**
@@ -63,6 +74,16 @@ function SearchController($scope, $http) {
     $scope.use_suggestion = function($event){
         $scope.search = $event.currentTarget.textContent;
         $scope.send_search($scope.search);
+    };
+
+    $scope.refresh = function() {
+        console.log("Restarting connection");
+        if ($scope.socket != undefined) $scope.socket.close();
+        $scope.socket = new WebSocket("ws://localhost:8080");
+        $scope.socket.onmessage = function(event) {
+            var data = JSON.parse(event.data);
+            $scope.suggestions = data.results;
+        };
     }
 }
 

@@ -6,17 +6,11 @@ import spray.http._
 import MediaTypes._
 import spray.http._
 import spray.http.HttpHeaders.{`Access-Control-Allow-Methods`, `Access-Control-Allow-Origin`, Connection}
-import autocomplete.datasource.AOLSearchSource
 import autocomplete.buc.{SearchSourceQuery, BucComputation, SearchSourceDataSet}
 import spray.json._
 import DefaultJsonProtocol._
 
-class HttpSearchServer() extends Actor with ActorLogging {
-  val searchDataSet: AOLSearchSource = AOLSearchSource.productionSearches()
-  val searches: SearchSourceDataSet = new SearchSourceDataSet(searchDataSet)
-  val buc: BucComputation[SearchSourceQuery, SearchSourceDataSet] =
-    new BucComputation[SearchSourceQuery, SearchSourceDataSet](searches, 3)
-
+class HttpSearchServer(buc: BucComputation[SearchSourceQuery, SearchSourceDataSet]) extends Actor with ActorLogging {
   override def receive: Receive = {
     case _: Http.Connected => sender ! Http.Register(self)
     case msg@HttpRequest(HttpMethods.GET, Uri.Path("/search"), _, _, _) =>
