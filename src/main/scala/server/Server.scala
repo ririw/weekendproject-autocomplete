@@ -6,7 +6,7 @@ import spray.can.Http
 import spray.http._
 import MediaTypes._
 import spray.http._
-import spray.http.HttpHeaders.Connection
+import spray.http.HttpHeaders.{`Access-Control-Allow-Methods`, `Access-Control-Allow-Origin`, Connection}
 import autocomplete.datasource.AOLSearchSource
 import autocomplete.buc.{SearchSourceQuery, BucComputation, SearchSourceDataSet}
 import spray.json._
@@ -19,7 +19,7 @@ object Server extends App {
 }
 
 class HttpSearchServer() extends Actor with ActorLogging {
-  val searchDataSet: AOLSearchSource = AOLSearchSource.testingSearches()
+  val searchDataSet: AOLSearchSource = AOLSearchSource.productionSearches()
   val searches: SearchSourceDataSet = new SearchSourceDataSet(searchDataSet)
   val buc: BucComputation[SearchSourceQuery, SearchSourceDataSet] =
     new BucComputation[SearchSourceQuery, SearchSourceDataSet](searches, 3)
@@ -32,12 +32,17 @@ class HttpSearchServer() extends Actor with ActorLogging {
         case Some(query) =>
           val q = SearchSourceQuery(query.split(' ').map(_.toLowerCase) toList)
           log.info("Got: " + q.toString)
-          val result = buc.getRefinements(q).getOrElse(List().toIterator)
+          val result = buc.getRefinements(q).getOrElse(List().toIterator).toList.sortBy(-_._2)
           val suggested = result.take(10).toList.map(_._1)
           val suggestionStrings = suggested.map(_.query.mkString(" "))
           val results = Map("results" -> suggestionStrings, "query" -> q.query)
-          sender ! HttpResponse(entity=HttpEntity(`application/json`, results.toJson.compactPrint), headers=closeConn)
+          sender ! HttpResponse(entity=HttpEntity(`application/json`, results.toJson.compactPrint), headers=`Access-Control-Allow-Origin`(AllOrigins) :: closeConn)
       }
+    case HttpRequest(HttpMethods.OPTIONS, path, _, _, _) =>
+      sender ! HttpResponse(headers=List(
+        `Access-Control-Allow-Origin`(AllOrigins),
+        `Access-Control-Allow-Methods`(HttpMethods.GET))
+      )
     case msg =>
       println(msg)
       sender ! HttpResponse(StatusCodes.NotFound, pathPage, headers=closeConn)
