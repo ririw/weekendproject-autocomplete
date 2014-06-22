@@ -1,6 +1,6 @@
 package server
 
-import akka.actor.{Props, Actor, ActorSystem}
+import akka.actor.{ActorLogging, Props, Actor, ActorSystem}
 import akka.io.IO
 import spray.can.Http
 import spray.http._
@@ -18,7 +18,7 @@ object Server extends App {
   IO(Http) ! Http.Bind(searchServer, "localhost", port = 8080)
 }
 
-class HttpSearchServer() extends Actor {
+class HttpSearchServer() extends Actor with ActorLogging {
   val searchDataSet: AOLSearchSource = AOLSearchSource.testingSearches()
   val searches: SearchSourceDataSet = new SearchSourceDataSet(searchDataSet)
   val buc: BucComputation[SearchSourceQuery, SearchSourceDataSet] =
@@ -30,10 +30,12 @@ class HttpSearchServer() extends Actor {
       msg.uri.query.get("q") match {
         case None => HttpResponse(StatusCodes.BadRequest, pathPage, headers=closeConn)
         case Some(query) =>
-          val result = buc.getRefinements(SearchSourceQuery(query.split("w+").map(_.toLowerCase)toList)).getOrElse(List().toIterator)
+          val q = SearchSourceQuery(query.split(' ').map(_.toLowerCase) toList)
+          log.info("Got: " + q.toString)
+          val result = buc.getRefinements(q).getOrElse(List().toIterator)
           val suggested = result.take(10).toList.map(_._1)
           val suggestionStrings = suggested.map(_.query.mkString(" "))
-          val results = Map("results" -> suggestionStrings)
+          val results = Map("results" -> suggestionStrings, "query" -> q.query)
           sender ! HttpResponse(entity=HttpEntity(`application/json`, results.toJson.compactPrint), headers=closeConn)
       }
     case msg =>
