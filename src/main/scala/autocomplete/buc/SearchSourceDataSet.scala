@@ -4,15 +4,15 @@ import autocomplete.datasource.{Search, AOLSearchSource}
 import scala.Ordering
 
 /**
- * A query here is an array of words, that form a prefix. So the query
- * ["Build", "a"] counts any case starting with "Build a".
+ * A query here is a prefix string, so "Build a" as a query would be
+ * true for "Build a website"
  *
- * Naturally, the base query is an empty list. The refinements are in
+ * Naturally, the base query is an empty string. The refinements are in
  * order most to least common. Expansions simply remove one item from
  * the end of the list.
  */
 class SearchSourceDataSet(searches: AOLSearchSource) extends BucDataSet[SearchSourceQuery] with BucDataSetWithMinSup[SearchSourceQuery] {
-  override val baseQuery: SearchSourceQuery = SearchSourceQuery(List())
+  override val baseQuery: SearchSourceQuery = SearchSourceQuery("")
 
   /** Expansions are real easy here, we can simply lop off the last word in the query array */
   override def expansion(query: SearchSourceQuery): Option[Iterator[SearchSourceQuery]] = query.expansion
@@ -43,21 +43,21 @@ class SearchSourceDataSet(searches: AOLSearchSource) extends BucDataSet[SearchSo
      *
      * We also order this from most to least common, as they are above.
      */
-    val children = prefixTrie.directChildrenCounts(PrefixItem(query.query.toList))
+    val children = prefixTrie.directChildrenCounts(PrefixItem(query.query))
     children.filter(_._2 >= minSupp)
     children.isEmpty match {
       case true  => None
-      case false => Some(children.keySet.map{s => SearchSourceQuery(s.item)}.toIterator)
+      case false => Some(children.keySet.map{s => SearchSourceQuery(s.item.mkString(""))}.toIterator)
     }
   }
 
-  val prefixTrie = new CountingTrie[String](searches.iterator.map{s => PrefixItem(s.searchString)})
+  val prefixTrie = new CountingTrie[Char](searches.iterator.map{s => PrefixItem(s.searchString)})
   override def query(query: SearchSourceQuery): Long = prefixTrie.get(PrefixItem(query.query))
 
   //override def query(query: SearchSourceQuery): Long = searches.iterator.count(query.apply)
 }
 
-case class SearchSourceQuery(query: List[String]) extends AnyVal {
+case class SearchSourceQuery(query: String) extends AnyVal {
   /**
    * Apply a query to a string. This works by matching up all
    * the items in the query, and pairwise-checking that they are
@@ -123,7 +123,5 @@ object SearchSourceQuery {
     }
   }
 
-  def makeQuery(query: String*): SearchSourceQuery = {
-    SearchSourceQuery(query.toList)
-  }
+  def makeQuery(query: String): SearchSourceQuery = SearchSourceQuery(query)
 }

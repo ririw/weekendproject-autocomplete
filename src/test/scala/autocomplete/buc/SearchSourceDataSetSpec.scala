@@ -18,7 +18,7 @@ class SearchSourceDataSetSpec extends FlatSpec with Matchers {
   }
   it should "yield some results, and do so many times." in {
     val searches = new SearchSourceDataSet(searchDataSet)
-    val aSearch = SearchSourceQuery(List("integrated", "real"))
+    val aSearch = SearchSourceQuery("integrated real")
     searches.query(aSearch) should be > 0l
     searches.query(aSearch) should be > 0l
   }
@@ -28,7 +28,7 @@ class SearchSourceDataSetSpec extends FlatSpec with Matchers {
   }
   it should "correctly expand a query, ie, the expand property holds" in {
     val searches = new SearchSourceDataSet(searchDataSet)
-    val aSearch = SearchSourceQuery(List("integrated", "real"))
+    val aSearch = SearchSourceQuery("integrated real")
     searches.query(aSearch) should be > 0l
     val expansion = searches.expansion(aSearch)
     expansion should be !== None
@@ -38,7 +38,7 @@ class SearchSourceDataSetSpec extends FlatSpec with Matchers {
   }
   "refinement" should "correctly refine a query" in {
     val searches = new SearchSourceDataSet(searchDataSet)
-    val aSearch = SearchSourceQuery(List("integrated"))
+    val aSearch = SearchSourceQuery("integrated")
     searches.query(aSearch) should be > 1l
     val refinement = searches.refinement(1)(aSearch)
     refinement should be !== None
@@ -53,7 +53,7 @@ class SearchSourceDataSetSpec extends FlatSpec with Matchers {
     import ExecutionContext.Implicits.global
     val foundRefinement = Future {
       val searches = new SearchSourceDataSet(searchDataSet)
-      val aSearch = SearchSourceQuery(List("integrated"))
+      val aSearch = SearchSourceQuery("integrated")
       var refinement = aSearch
       while (searches.refinement(0)(refinement) != None) {
         refinement = searches.refinement(0)(refinement).get.next()

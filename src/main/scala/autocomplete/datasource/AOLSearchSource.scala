@@ -23,15 +23,8 @@ class AOLSearchSource(inputs: List[() => AutoCloseInputStream]) extends SearchSo
     results.flatMap{r => r.right.toOption}
   }
 
-  protected def stringToSearch(search: String): Either[SearchFailure, Search] = {
-    val splitSearch = search.split('\t')
-    if (splitSearch.length < 2) {
-      println(SearchFailure(search))
-      Left(SearchFailure(search))
-    } else {
-      Right(Search(splitSearch.apply(1).split(' ').toList))
-    }
-  }
+  protected def stringToSearch(search: String): Either[SearchFailure, Search] = Right(Search(search))
+
   override def ~>[Next, SourceNext <: SearchSource[Next]](other: (SearchSource[Search]) => SourceNext): SourceNext = {
     other(this)
   }
@@ -59,9 +52,9 @@ case class SearchFailure(search: String) extends AnyVal
 
 /**
  * The successful case.
- * @param searchString the list of search terms.
+ * @param searchString the string that was formed the search.
  */
-case class Search(searchString: List[String]) extends AnyVal
+case class Search(searchString: String) extends AnyVal
 
 object AOLSearchSource {
   def searches(searchSource: List[String]) = {

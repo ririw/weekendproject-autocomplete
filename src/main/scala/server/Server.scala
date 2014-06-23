@@ -8,7 +8,7 @@ import autocomplete.datasource.AOLSearchSource
 import spray.can.server.UHttp
 
 object Server extends App {
-  val searchDataSet: AOLSearchSource = AOLSearchSource.productionSearches()
+  val searchDataSet: AOLSearchSource = AOLSearchSource.testingSearches()
   val searches: SearchSourceDataSet = new SearchSourceDataSet(searchDataSet)
   val buc: BucComputation[SearchSourceQuery, SearchSourceDataSet] =
     new BucComputation[SearchSourceQuery, SearchSourceDataSet](searches, 3)

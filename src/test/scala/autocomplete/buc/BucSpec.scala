@@ -12,12 +12,12 @@ class BucSpec extends FlatSpec with Matchers {
     new BucComputation[SearchSourceQuery, SearchSourceDataSet](searches, 3)
 
   it should "have some items" in {
-    val result = buc.apply(SearchSourceQuery.makeQuery("myocutaneous", "flap"))
+    val result = buc.apply(SearchSourceQuery.makeQuery("myocutaneous flap"))
     result should not be None
     result.get should be > 0l
   }
   it should "Give some refinements" in {
-    val grossQuery = SearchSourceQuery.makeQuery("myocutaneous", "flap")
+    val grossQuery = SearchSourceQuery.makeQuery("myocutaneous flap")
     val result = buc.getRefinements(grossQuery)
     result should not be None
     for ((refinement, count) <- result.get) {
@@ -29,9 +29,9 @@ class BucSpec extends FlatSpec with Matchers {
   it should "Super break with production data" ignore {
     val searchDataSetP: AOLSearchSource = AOLSearchSource.productionSearches()
     val searchesP: SearchSourceDataSet = new SearchSourceDataSet(searchDataSetP)
-    var bucP: BucComputation[SearchSourceQuery, SearchSourceDataSet] =
+    val bucP: BucComputation[SearchSourceQuery, SearchSourceDataSet] =
       new BucComputation[SearchSourceQuery, SearchSourceDataSet](searchesP, 10)
-    val result = buc.apply(SearchSourceQuery.makeQuery())
+    val result = buc.apply(SearchSourceQuery.makeQuery(""))
     result should not be None
     result.get should be > 0l
   }
@@ -39,9 +39,9 @@ class BucSpec extends FlatSpec with Matchers {
   it should "Benchmark ok" in {
     val searchDataSetP: AOLSearchSource = AOLSearchSource.productionSearches()
     val searchesP: SearchSourceDataSet = new SearchSourceDataSet(searchDataSetP)
-    var bucP: BucComputation[SearchSourceQuery, SearchSourceDataSet] =
+    val bucP: BucComputation[SearchSourceQuery, SearchSourceDataSet] =
       new BucComputation[SearchSourceQuery, SearchSourceDataSet](searchesP, 10)
-    val result = buc.apply(SearchSourceQuery.makeQuery())
+    val result = buc.apply(SearchSourceQuery.makeQuery(""))
 
     result should not be None
     result.get should be > 0l

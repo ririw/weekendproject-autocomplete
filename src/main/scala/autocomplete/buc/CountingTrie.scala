@@ -42,7 +42,7 @@ class CountingTrie[PrefixKey](items: Iterator[PrefixItem[PrefixKey]]) {
    * Add an item to the mutable heads set of tries.
    * @param key the key to add
    */
-  private def addKey(key: List[PrefixKey]) {
+  private def addKey(key: Seq[PrefixKey]) {
     assert(key.length > 0)
     val child = heads.get(key.head)
     val nextNode = child match {
@@ -74,7 +74,6 @@ class CountingTrie[PrefixKey](items: Iterator[PrefixItem[PrefixKey]]) {
           case Some(n) => traverseToGently(n, key.item.tail).map(_.count).getOrElse(0)
         }
     }
-
   }
 
   /**
@@ -101,7 +100,7 @@ class CountingTrie[PrefixKey](items: Iterator[PrefixItem[PrefixKey]]) {
    * @param fromNode the node to start from. This only works on mutable nodes, for obvious reasons
    * @param prefix the prefix to create/increment.
    */
-  private def traverseToForciblyAndIncrement(fromNode: MTrieNode, prefix: List[PrefixKey]) {
+  private def traverseToForciblyAndIncrement(fromNode: MTrieNode, prefix: Seq[PrefixKey]) {
     prefix.isEmpty match {
       case true => Unit
       case false =>
@@ -127,7 +126,7 @@ class CountingTrie[PrefixKey](items: Iterator[PrefixItem[PrefixKey]]) {
    * @tparam N the type of the TrieNode
    * @return a node, of type N, that is at that prefix address, or None if there is no such node
    */
-  protected def traverseToGently[N <: TrieNode[N]](fromNode: N, prefix: List[PrefixKey]): Option[N] = {
+  protected def traverseToGently[N <: TrieNode[N]](fromNode: N, prefix: Seq[PrefixKey]): Option[N] = {
     prefix.isEmpty match {
       case true => Some(fromNode)
       case false =>
@@ -160,4 +159,4 @@ class CountingTrie[PrefixKey](items: Iterator[PrefixItem[PrefixKey]]) {
   case class FTrieNode(key: PrefixKey, count: Long, children: Map[PrefixKey, FTrieNode]) extends TrieNode[FTrieNode]
 }
 
-case class PrefixItem[A](item: List[A]) extends AnyVal
+case class PrefixItem[A](item: Seq[A]) extends AnyVal

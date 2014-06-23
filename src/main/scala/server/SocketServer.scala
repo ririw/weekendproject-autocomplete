@@ -4,7 +4,7 @@ import akka.actor._
 import akka.actor.Props
 import spray.can.websocket
 import spray.can.websocket.frame.{ BinaryFrame, TextFrame }
-import spray.routing.HttpServiceActor
+import spray.routing.{Directives, HttpServiceActor}
 import akka.actor.{ActorRef, ActorLogging, Actor}
 import spray.can.Http
 import spray.http._
@@ -36,7 +36,7 @@ object WebSocketWorker {
     Props(classOf[WebSocketWorker], serverConnection, buc)
 }
 class WebSocketWorker(val serverConnection: ActorRef, buc: BucComputation[SearchSourceQuery, SearchSourceDataSet])
-  extends HttpServiceActor with websocket.WebSocketServerConnection {
+  extends HttpServiceActor with websocket.WebSocketServerConnection with StaticRoutes {
   override def receive = handshaking orElse businessLogicNoUpgrade orElse closeLogic
 
   def businessLogic: Receive = {
@@ -47,7 +47,7 @@ class WebSocketWorker(val serverConnection: ActorRef, buc: BucComputation[Search
         case tf: TextFrame => TextFrame.unapply(tf).map(_.decodeString("UTF-8"))
       }
       sender() ! xString.map { query =>
-        val queryWords = SearchSourceQuery(query.split(' ').map(_.toLowerCase) toList)
+        val queryWords = SearchSourceQuery(query.toLowerCase)
         val results = getQueryResults(queryWords)
         sender ! TextFrame(results.toJson.compactPrint)
       }
@@ -62,7 +62,7 @@ class WebSocketWorker(val serverConnection: ActorRef, buc: BucComputation[Search
       msg.uri.query.get("q") match {
         case None => HttpResponse(StatusCodes.BadRequest, pathPage, headers=closeConn)
         case Some(query) =>
-          val queryWords = SearchSourceQuery(query.split(' ').map(_.toLowerCase) toList)
+          val queryWords = SearchSourceQuery(query.toLowerCase)
           val results = getQueryResults(queryWords)
           sender ! HttpResponse(entity=HttpEntity(`application/json`, results.toJson.compactPrint), headers=`Access-Control-Allow-Origin`(AllOrigins) :: closeConn)
       }
@@ -71,17 +71,19 @@ class WebSocketWorker(val serverConnection: ActorRef, buc: BucComputation[Search
         `Access-Control-Allow-Origin`(AllOrigins),
         `Access-Control-Allow-Methods`(HttpMethods.GET))
       )
+    //case req =>
+    //  runRoute(staticRoute)
     case msg =>
       println(msg)
       sender ! HttpResponse(StatusCodes.NotFound, pathPage, headers=closeConn)
   }
   
-  private def getQueryResults(queryWords: SearchSourceQuery): Map[String, List[String]] = {
+  private def getQueryResults(queryWords: SearchSourceQuery): Map[String, JsValue] = {
     log.info("Got: " + queryWords.toString)
     val result = buc.getRefinements(queryWords).getOrElse(List().toIterator).toList.sortBy(-_._2)
     val suggested = result.take(5).toList.map(_._1)
     val suggestionStrings = suggested.map(_.query.mkString(" "))
-    Map("results" -> suggestionStrings, "query" -> queryWords.query)
+    Map("results" -> JsArray(suggestionStrings.map(JsString(_))), "query" -> JsString(queryWords.query))
   }
   val closeConn = List(Connection.apply("close"))
 
@@ -96,4 +98,12 @@ class WebSocketWorker(val serverConnection: ActorRef, buc: BucComputation[Search
       </body>
     </html>.toString())
   lazy val index = HttpResponse(entity = pathPage)
+}
+
+trait StaticRoutes extends Directives {
+ // lazy val staticRoute =
+ //   path("index.html") { getFromFile("frontend/index.html")} ~
+ //   path("frefresh.png") { getFromFile("frontend/refresh.png")} ~
+ //   path("search.css") { getFromFile("frontend/search.css")} ~
+ //   path("search.js") { getFromFile("frontend/search.js")}
 }
