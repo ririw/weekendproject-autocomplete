@@ -1,7 +1,5 @@
 package autocomplete.buc
 
-import scala.collection.mutable
-
 /**
  *  This is a lot like a counting trie, except that this will
  *  not split up a long chain of entries. For example, for input
@@ -18,9 +16,53 @@ import scala.collection.mutable
  */
 
 class LazySplittingCountingTrie[PrefixKey](items: Iterator[Seq[PrefixKey]]) {
-  trait TrieNode[T <: TrieNode[T]] {
+  /** The trie! */
+  lazy val trie = items.foldRight(TrieRoot.empty)((item, tree) => tree.addNodeForcibly(item))
+  /** Get the count for a key, zero if it's not found */
+  def get(key: Seq[PrefixKey]): Long = trie.tenderlyTraverseToNode(key).map(_.count).getOrElse(0l)
+  /** Get the counts for direct decedents of a key */
+  def directChildrenCounts(key: Seq[PrefixKey]): List[(Seq[PrefixKey], Long)] =
+    trie.tenderlyTraverseToNode(key).map{ node =>
+      node.children.map{child => key ++ child.key -> child.count}
+    }.getOrElse(List())
+
+  /**
+   * The TrieNode is pretty much the center of this whole situation.
+   * It represents one node in the trie, as you'd expect, but could be
+   * either the root or a branch.
+   *
+   * The root does not have a key, but it does have children and a count,
+   * so the only fields that the overall TrieNode has are children and count
+   * @tparam T the type for the overriding class
+   */
+  sealed trait TrieNode[T <: TrieNode[T]] {
+    /** The list of all children (always branches) */
     val children: List[TrieBranch]
+    /** The sum of all values below and including this */
     val count: Long
+
+    /**
+     * Add an entry to this node, forcibly, meaning that it will create the
+     * requisite nodes if needed.
+     * @param item the item to add. Note that this method _DOES NOT MATCH ON THIS NODE'S KEY_
+     * @return the freshly modified trie.
+     */
+    /*
+    This is reasonably simple. It works by searching amongst the children for any child with the
+    same key, or who's key includes part of the item being searched for.
+
+    If no such child is found, one is created and added to this node's set of children and the
+    new node returned.
+
+    If the child is found, there are two cases:
+      1) the child is a full match - in which case that child is duplicated but with an incremented count
+      2) the child is a partial prefix match - in which case that child is replaced by the prefix. The
+         replacing node has as children: a new node for the new item, and a node that carries all the
+         replaced node's children, and the leftover part of the prefix.
+
+    Then, this yields a new child in either case. This child is added to the list of children for this
+    node, and this node has its count incremented.
+     */
     def addNodeForcibly(item: Seq[PrefixKey]): T = {
       children find {
         case TrieBranch(k, _, _) => k.zip(item).takeWhile{case (a,b) => a == b}.length > 0
@@ -42,6 +84,12 @@ class LazySplittingCountingTrie[PrefixKey](items: Iterator[Seq[PrefixKey]]) {
           this.dup(count+1, newChildren)
       }
     }
+
+    /**
+     * Traverse to a node, or return None if it does not exit
+     * @param item the item to traverse to
+     * @return
+     */
     def tenderlyTraverseToNode(item: Seq[PrefixKey]): Option[TrieBranch] = {
       children.flatMap {
         case t@TrieBranch(k, _, _) if k == item => Some(t)
@@ -49,9 +97,26 @@ class LazySplittingCountingTrie[PrefixKey](items: Iterator[Seq[PrefixKey]]) {
         case _ => None
       }.headOption
     }
+
+    /**
+     * It turns out that the addNodeForcibly function relies only on duplication with changes
+     * to count and the children, never the key - which makes sense, there's no reason to edit
+     * the key. Therefore, the only method we need to implement in sub-classes is dup, which
+     * copies the object with modified count and children. It bascially follows the struture of
+     * the case class copy() method.
+     * @param count
+     * @param children
+     * @return
+     */
     def dup(count: Long = count, children: List[TrieBranch] = children): T
   }
 
+  /**
+   * A branch for a Trie
+   * @param key
+   * @param count
+   * @param children
+   */
   case class TrieBranch(key: Seq[PrefixKey], count: Long, children: List[TrieBranch]) extends TrieNode[TrieBranch] {
     override def dup(count: Long = count, children: List[TrieBranch] = children): TrieBranch =
       this.copy(count=count, children=children)
@@ -60,9 +125,8 @@ class LazySplittingCountingTrie[PrefixKey](items: Iterator[Seq[PrefixKey]]) {
     override def dup(count: Long, children: List[TrieBranch]): TrieRoot =
       this.copy(count=count, children=children)
   }
-}
+  object TrieRoot {
+    def empty = TrieRoot(0, Nil)
+  }
 
-trait MutaZipper[A] {
-  val nexts: mutable.ListBuffer[A]
-  val prev: Option[A]
 }
