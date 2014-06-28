@@ -26,8 +26,8 @@ class LazySplittingCountingTrie[PrefixKey](items: Iterator[Seq[PrefixKey]]) {
         if (item.length > 0) (tree.addNodeForcibly(item), count) else (tree, count+1)
     }
   /** The trie! */
-  lazy val trie = trieParts._1
-  lazy val emptyCounter = trieParts._2
+  val trie = trieParts._1
+  val emptyCounter = trieParts._2
   /** Get the count for a key, zero if it's not found */
   def get(key: Seq[PrefixKey]): Long = if (key.length == 0) emptyCounter else trie.tenderlyTraverseToNode(key).map(_.count).getOrElse(0l)
   /** Get the counts for direct decedents of a key */
@@ -40,9 +40,16 @@ class LazySplittingCountingTrie[PrefixKey](items: Iterator[Seq[PrefixKey]]) {
       trie.tenderlyTraverseToNode(key).map {
         node =>
           node.children.map {
-            child => key ++ child.key -> child.count
+            child => node.key ++ child.key -> child.count
           }
       }.getOrElse(List())
+    }
+  }
+  def getParent(key: Seq[PrefixKey]): Option[Seq[PrefixKey]] = {
+    if (key.length == 0) {
+      None
+    } else {
+      trie.tenderlyTraverseToNode(key).flatMap(_.parent.map(_.key))
     }
   }
 
@@ -84,45 +91,57 @@ class LazySplittingCountingTrie[PrefixKey](items: Iterator[Seq[PrefixKey]]) {
     node, and this node has its count incremented.
      */
     def addNodeForcibly(item: Seq[PrefixKey]): T = {
+      val thisParent: Option[TrieBranch] = this match {
+        case p: TrieBranch => Some(p)
+        case p: TrieRoot => None
+      }
       assert(item.length > 0)
       children.zipWithIndex find {
-        case (TrieBranch(k, _, _), i) => k.zip(item).takeWhile{case (a,b) => a == b}.length > 0
+        case (TrieBranch(k, _, _, _), i) => k.zip(item).takeWhile{case (a,b) => a == b}.length > 0
       } match {
         case None =>
-          val newNode = new TrieBranch(item, 1, Nil)
+          val newNode = new TrieBranch(item, 1, Nil, thisParent)
           this.dup(children = newNode :: children)
         case Some((childNode, i)) =>
           val replacementNode = childNode match {
-            case t@TrieBranch(k, c, _) if k == item => t.copy(count = c + 1)
-            case t@TrieBranch(k, _, _)
+            case t@TrieBranch(k, c, _, _) if k == item => t.copy(count = c + 1)
+            case t@TrieBranch(k, _, _, _)
               if item.startsWith(k) => t.addNodeForcibly(item.drop(k.length))
-            case TrieBranch(k, c, ch) =>
+            case TrieBranch(k, c, ch, p) =>
               val commonPrefix = k.zip(item).takeWhile {
                 case (a, b) => a == b
               }.map(_._1)
               val childPrefix = k.drop(commonPrefix.length)
               val itemPrefix = item.drop(commonPrefix.length)
-              val childNode = TrieBranch(childPrefix, c, ch)
-              if (itemPrefix.length == 0) {
-                TrieBranch(commonPrefix, c+1, childNode :: Nil)
+              val childNode: TrieBranch = TrieBranch(childPrefix, c, ch, None)
+              val itemNode: TrieBranch = TrieBranch(itemPrefix, 1, Nil, None)
+              val parent: TrieBranch = if (itemPrefix.length == 0) {
+                TrieBranch(commonPrefix, c+1, childNode :: Nil, thisParent)
               }else {
-                val itemNode = TrieBranch(itemPrefix, 1, Nil)
-                TrieBranch(commonPrefix, c + 1, childNode :: itemNode :: Nil)
+                TrieBranch(commonPrefix, c + 1, childNode :: itemNode :: Nil, thisParent)
               }
+              childNode.parent = Some(parent)
+              parent.parent = Some(parent)
+              parent
           }
           this.dup(children = children.updated(i, replacementNode))
       }
     }
 
     /**
-     * Traverse to a node, or return None if it does not exit
+     * Traverse to a node, or return None if it does not exist. This will do
+     * partial matches on nodes.
      * @param item the item to traverse to
      * @return
      */
     def tenderlyTraverseToNode(item: Seq[PrefixKey]): Option[TrieBranch] = {
       children.flatMap {
-        case t@TrieBranch(k, _, _) if k == item => Some(t)
-        case t@TrieBranch(k, _, _) if item.startsWith(k) => t.tenderlyTraverseToNode(item.drop(k.length))
+        case t@TrieBranch(k, _, _, _) if k == item => Some(t)
+        case t@TrieBranch(k, _, _, _) if item.startsWith(k) =>
+          t.tenderlyTraverseToNode(item.drop(k.length)) match {
+            case None => Some(t)
+            case t: Some[TrieBranch] => t
+          }
         case _ => None
       }.headOption
     }
@@ -139,8 +158,8 @@ class LazySplittingCountingTrie[PrefixKey](items: Iterator[Seq[PrefixKey]]) {
      */
     def dup(count: Long = count, children: List[TrieBranch] = children): T
   }
-
-  case class TrieBranch(key: Seq[PrefixKey], count: Long, children: List[TrieBranch]) extends TrieNode[TrieBranch] {
+  // This has to use var parent because scala is super lame about mutual recursion and lazy vals.
+  case class TrieBranch(key: Seq[PrefixKey], count: Long, children: List[TrieBranch], var parent: Option[TrieBranch]) extends TrieNode[TrieBranch] {
     override def dup(count: Long = count, children: List[TrieBranch] = children): TrieBranch =
       this.copy(count=count, children=children)
   }

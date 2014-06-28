@@ -30,16 +30,16 @@ class LazySplittingCountingTrieSpec extends FlatSpec with Matchers with Property
   it should "build and work with an empty iterator" in {
     val t = new LazySplittingCountingTrie[Char](List().toIterator)
     forAll {s: String =>
-      t.get(s) should be === 0
-      t.directChildrenCounts(s) should be === List()
+      t.get(s) should be(0)
+      t.directChildrenCounts(s) should be(List())
     }
   }
   it should "correctly handle empty strings" in {
     val t = new LazySplittingCountingTrie[Char](List("".toSeq).toIterator)
-    t.get("".toSeq) should be === 1
+    t.get("".toSeq) should be(1)
     forAll {otherstring: String =>
       if ("" != otherstring) {
-        t.get(otherstring) should be === 0
+        t.get(otherstring) should be(0)
       }
     }
   }
@@ -47,13 +47,13 @@ class LazySplittingCountingTrieSpec extends FlatSpec with Matchers with Property
   it should "add a string and then find it again" in {
     forAll {s: String =>
       val t = new LazySplittingCountingTrie[Char](List(s.toSeq).toIterator)
-      t.get(s) should be === 1
+      t.get(s) should be(1)
       forAll {otherstring: String =>
-        if (s != otherstring) {
-          t.get(otherstring) should be === 0
+        if (s != otherstring && !otherstring.startsWith(s)) {
+          t.get(otherstring) should be(0)
         }
       }
-      t.directChildrenCounts(s) should be === List()
+      t.directChildrenCounts(s) should be(List())
     }
   }
   it should "Add several strings then find them again" in {

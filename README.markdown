@@ -129,6 +129,11 @@ should be a lot more helpful, because it'll suggest very salient things. I think
     to manipulate it. Then the algo changed, and the cases were used to pick both the way to manipulate, and the child
     to manipulate, but I only had cases that covered picking the right manipulation method. The fourth was that the get
     method failed to recurse properly. 
+  * Sat Jun 28 13:26:42 EST 2014 - A - 4e2b27a4b007254b89d0e476e53a0167ab764325: More bugs in the Lazy trie, because I
+    didn't update the implementations of things like the get method from the old version. I also needed to introduce
+    a parent pointer to the trie, which found some interesting problems with the way scala handles mutual recursion. Ie,
+    it doesn't, it just stack overflows.
+  * 
   
 
 # Discoveries

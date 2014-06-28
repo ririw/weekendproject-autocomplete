@@ -15,7 +15,10 @@ class SearchSourceDataSet(searches: AOLSearchSource) extends BucDataSet[SearchSo
   override val baseQuery: SearchSourceQuery = SearchSourceQuery("")
 
   /** Expansions are real easy here, we can simply lop off the last word in the query array */
-  override def expansion(query: SearchSourceQuery): Option[Iterator[SearchSourceQuery]] = query.expansion
+  override def expansion(query: SearchSourceQuery): Option[Iterator[SearchSourceQuery]] = {
+    val parent = prefixTrie.getParent(query.query)
+    parent.map(k => List(SearchSourceQuery(k.mkString(""))).toIterator)
+  }
 
   /**
    * @inheritdoc
@@ -43,16 +46,16 @@ class SearchSourceDataSet(searches: AOLSearchSource) extends BucDataSet[SearchSo
      *
      * We also order this from most to least common, as they are above.
      */
-    val children = prefixTrie.directChildrenCounts(PrefixItem(query.query))
+    val children = prefixTrie.directChildrenCounts(query.query)
     children.filter(_._2 >= minSupp)
     children.isEmpty match {
       case true  => None
-      case false => Some(children.keySet.map{s => SearchSourceQuery(s.item.mkString(""))}.toIterator)
+      case false => Some(children.map{case (s, count) => SearchSourceQuery(s.mkString(""))}.toIterator)
     }
   }
 
-  val prefixTrie = new CountingTrie[Char](searches.iterator.map{s => PrefixItem(s.searchString)})
-  override def query(query: SearchSourceQuery): Long = prefixTrie.get(PrefixItem(query.query))
+  val prefixTrie = new LazySplittingCountingTrie[Char](searches.iterator.map{s => s.searchString})
+  override def query(query: SearchSourceQuery): Long = prefixTrie.get(query.query)
 
   //override def query(query: SearchSourceQuery): Long = searches.iterator.count(query.apply)
 }

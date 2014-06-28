@@ -12,7 +12,7 @@ class BucBenchmarkSpec extends FlatSpec with Matchers {
     new BucComputation[SearchSourceQuery, SearchSourceDataSet](searches, 3)
 
   it should "Benchmark ok" in {
-    val searchDataSetP: AOLSearchSource = AOLSearchSource.productionSearches()
+    val searchDataSetP: AOLSearchSource = AOLSearchSource.testingSearches()
     val searchesP: SearchSourceDataSet = new SearchSourceDataSet(searchDataSetP)
     val bucP: BucComputation[SearchSourceQuery, SearchSourceDataSet] =
       new BucComputation[SearchSourceQuery, SearchSourceDataSet](searchesP, 10)

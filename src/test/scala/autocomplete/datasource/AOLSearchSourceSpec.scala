@@ -10,18 +10,16 @@ class AOLSearchSourceSpec extends FlatSpec with Matchers {
     val searches = search.iterator.toSeq
     val firstTestResult = searches(1).searchString
     val anotherResult = searches(14).searchString
-    assert(firstTestResult.length == 1)
+    assert(firstTestResult.length == 14)
     assert(firstTestResult == "rentdirect.com")
-    assert(anotherResult.length == 3)
-    assert(anotherResult == "207")
-    assert(anotherResult == "ad2d")
-    assert(anotherResult == "530")
+    assert(anotherResult.length == 12)
+    assert(anotherResult == "207 ad2d 530")
     search.close()
   }
   it should "Read out a couple of production searches" in {
     val search = AOLSearchSource.productionSearches()
     val firstTestResult = search.iterator.toSeq.tail.head.searchString
-    assert(firstTestResult.length == 1)
+    assert(firstTestResult.length == 14)
     assert(firstTestResult == "rentdirect.com")
     search.close()
   }

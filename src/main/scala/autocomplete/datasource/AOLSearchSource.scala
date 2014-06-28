@@ -23,8 +23,15 @@ class AOLSearchSource(inputs: List[() => AutoCloseInputStream]) extends SearchSo
     results.flatMap{r => r.right.toOption}
   }
 
-  protected def stringToSearch(search: String): Either[SearchFailure, Search] = Right(Search(search))
-
+  protected def stringToSearch(search: String): Either[SearchFailure, Search] = {
+    val splitSearch = search.split('\t')
+    if (splitSearch.length < 2) {
+      println(SearchFailure(search))
+      Left(SearchFailure(search))
+    } else {
+      Right(Search(splitSearch.apply(1)))
+    }
+  }
   override def ~>[Next, SourceNext <: SearchSource[Next]](other: (SearchSource[Search]) => SourceNext): SourceNext = {
     other(this)
   }
