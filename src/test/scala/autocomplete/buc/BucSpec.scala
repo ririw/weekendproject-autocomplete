@@ -36,7 +36,6 @@ class BucSpec extends FlatSpec with Matchers {
     result should not be None
     result.get should be > 0l
 
-
     import com.codahale.metrics.MetricRegistry
     val metricsRegistry = new MetricRegistry()
     val reporter = ConsoleReporter.forRegistry(metricsRegistry)
@@ -51,5 +50,6 @@ class BucSpec extends FlatSpec with Matchers {
       bucP.apply(WordSearchSourceQuery(query.search))
       meter.mark()
     }
+    reporter.stop()
   }
 }

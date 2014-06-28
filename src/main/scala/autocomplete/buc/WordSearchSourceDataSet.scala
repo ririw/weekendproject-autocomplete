@@ -122,4 +122,6 @@ object WordSearchSourceQuery {
   }
 
   def makeQuery(query: String*): WordSearchSourceQuery = WordSearchSourceQuery(query.toList)
+  def makeQuery(query: String): WordSearchSourceQuery = WordSearchSourceQuery(query.split(' ').toList)
+  def makeQuery(): WordSearchSourceQuery = WordSearchSourceQuery(List())
 }

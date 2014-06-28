@@ -1,22 +1,22 @@
 package autocomplete.buc
 
 import org.scalatest.{Matchers, FlatSpec}
-import autocomplete.datasource.AOLSearchSource
+import autocomplete.datasource.AOLWordSearchSource
 import com.codahale.metrics.ConsoleReporter
 import java.util.concurrent.TimeUnit
 
 class BucBenchmarkSpec extends FlatSpec with Matchers {
-  lazy val searchDataSet: AOLSearchSource = AOLSearchSource.testingSearches()
-  lazy val searches: SearchSourceDataSet = new SearchSourceDataSet(searchDataSet)
-  lazy val buc: BucComputation[SearchSourceQuery, SearchSourceDataSet] =
-    new BucComputation[SearchSourceQuery, SearchSourceDataSet](searches, 3)
+  lazy val searchDataSet: AOLWordSearchSource = AOLWordSearchSource.testingSearches()
+  lazy val searches: WordSearchSourceDataSet = new WordSearchSourceDataSet(searchDataSet)
+  lazy val buc: BucComputation[WordSearchSourceQuery, WordSearchSourceDataSet] =
+    new BucComputation[WordSearchSourceQuery, WordSearchSourceDataSet](searches, 3)
 
   it should "Benchmark ok" in {
-    val searchDataSetP: AOLSearchSource = AOLSearchSource.testingSearches()
-    val searchesP: SearchSourceDataSet = new SearchSourceDataSet(searchDataSetP)
-    val bucP: BucComputation[SearchSourceQuery, SearchSourceDataSet] =
-      new BucComputation[SearchSourceQuery, SearchSourceDataSet](searchesP, 10)
-    val result = buc.apply(SearchSourceQuery.makeQuery(""))
+    val searchDataSetP: AOLWordSearchSource = AOLWordSearchSource.productionSearches()
+    val searchesP: WordSearchSourceDataSet = new WordSearchSourceDataSet(searchDataSetP)
+    val bucP: BucComputation[WordSearchSourceQuery, WordSearchSourceDataSet] =
+      new BucComputation[WordSearchSourceQuery, WordSearchSourceDataSet](searchesP, 10)
+    val result = buc.apply(WordSearchSourceQuery.makeQuery())
 
     result should not be None
     result.get should be > 0l
@@ -36,7 +36,7 @@ class BucBenchmarkSpec extends FlatSpec with Matchers {
     System.gc()
     val miniDataSet = searchDataSet.iterator
     for (query <- miniDataSet) {
-      bucP.apply(SearchSourceQuery(query.searchString))
+      bucP.apply(WordSearchSourceQuery(query.search))
       meter.mark()
     }
     reporter.stop()
