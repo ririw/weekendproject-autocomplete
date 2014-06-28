@@ -11,6 +11,12 @@
 
 body {
     background-color: #F3F3F3;
+    font-family: sans-serif;
+}
+.centered {
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
 }
 
 .textbox {
