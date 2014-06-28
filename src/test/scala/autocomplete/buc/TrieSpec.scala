@@ -68,7 +68,6 @@ class LazySplittingCountingTrieSpec extends FlatSpec with Matchers with Property
     }
   }
   it should "Work with some deliberately compounded strings" in {
-
     val reporter = ConsoleReporter.forRegistry(GlobalReg.reg)
       .convertRatesTo(TimeUnit.SECONDS)
       .convertDurationsTo(TimeUnit.MILLISECONDS)
