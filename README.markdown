@@ -135,6 +135,8 @@ should be a lot more helpful, because it'll suggest very salient things. I think
     it doesn't, it just stack overflows.
   * Sat Jun 28 13:39:06 EST 2014 - AD - bca5a04f66ce064539d1eb42c9b4b49143edd95a: It turns out BUC and the lazy trie
     approach aim to solve different problems. I am refactoring the server to use the lazy trie alone. 
+  * Sat Jun 28 16:13:01 EST 2014 - A - ab910cae18d17a0d5e8b05873a36212b67c4dd6a: Another bug in the lazy trie, it turns
+    out that the parents weren't being done properly.
   
 
 # Discoveries
@@ -149,4 +151,4 @@ This was based on the spray easter eggs template from typesafe activator. That s
 ## Spray Easter Eggs Project
 ## Spray
 ## Wandoulabs and their spray websocket server
-## Everyone else, ever
+## Everyone else, ever  

@@ -38,6 +38,7 @@ class SearchSourceDataSetSpec extends FlatSpec with Matchers {
     refinement should be !== None
     refinement.get.nonEmpty should be(true)
     refinement.get.foreach { refinedSearch =>
+      println(refinedSearch)
       searches.query(refinedSearch) should be >= 1l
       searches.query(refinedSearch) should be < searches.query(aSearch)
       refinedSearch.query.length should be > aSearch.query.length

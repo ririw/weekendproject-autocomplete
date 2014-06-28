@@ -54,7 +54,7 @@ class SearchSourceDataSet(searches: AOLSearchSource) extends BucDataSet[SearchSo
     }
   }
 
-  val prefixTrie = new LazySplittingCountingTrie[Char](searches.iterator.map{s => s.searchString})
+  val prefixTrie = LazySplittingCountingTrie[Char](searches.iterator.map{s => s.searchString})
   override def query(query: SearchSourceQuery): Long = prefixTrie.get(query.query)
 
   //override def query(query: SearchSourceQuery): Long = searches.iterator.count(query.apply)
