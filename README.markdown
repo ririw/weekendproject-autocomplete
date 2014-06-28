@@ -133,7 +133,8 @@ should be a lot more helpful, because it'll suggest very salient things. I think
     didn't update the implementations of things like the get method from the old version. I also needed to introduce
     a parent pointer to the trie, which found some interesting problems with the way scala handles mutual recursion. Ie,
     it doesn't, it just stack overflows.
-  * 
+  * Sat Jun 28 13:39:06 EST 2014 - AD - bca5a04f66ce064539d1eb42c9b4b49143edd95a: It turns out BUC and the lazy trie
+    approach aim to solve different problems. I am refactoring the server to use the lazy trie alone. 
   
 
 # Discoveries

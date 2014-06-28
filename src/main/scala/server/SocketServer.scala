@@ -10,7 +10,7 @@ import spray.can.Http
 import spray.http._
 import MediaTypes._
 import spray.http._
-import autocomplete.buc.{SearchSourceQuery, BucComputation, SearchSourceDataSet}
+import autocomplete.buc._
 import spray.json._
 import DefaultJsonProtocol._
 
@@ -21,21 +21,27 @@ import spray.http.HttpResponse
 import spray.can.websocket.FrameCommandFailed
 
 
-class SocketServer(buc: BucComputation[SearchSourceQuery, SearchSourceDataSet]) extends Actor with ActorLogging {
+class SocketServer(buc: BucComputation[WordSearchSourceQuery, WordSearchSourceDataSet],
+                   stringToQuery: String => WordSearchSourceQuery,
+                   queryToString: WordSearchSourceQuery => String) extends Actor with ActorLogging {
   def receive = {
     // when a new connection comes in we register a WebSocketConnection actor as the per connection handler
     case Http.Connected(remoteAddress, localAddress) =>
       val serverConnection = sender()
-      val conn = context.actorOf(WebSocketWorker.props(serverConnection, buc))
+      val conn = context.actorOf(WebSocketWorker.props(serverConnection, buc, stringToQuery, queryToString))
       serverConnection ! Http.Register(conn)
   }
 }
 final case class Push(msg: String)
 object WebSocketWorker {
-  def props(serverConnection: ActorRef, buc: BucComputation[SearchSourceQuery, SearchSourceDataSet]) =
-    Props(classOf[WebSocketWorker], serverConnection, buc)
+  def props(serverConnection: ActorRef, buc: BucComputation[WordSearchSourceQuery, WordSearchSourceDataSet],
+            stringToQuery: String => WordSearchSourceQuery,
+            queryToString: WordSearchSourceQuery => String) =
+    Props(classOf[WebSocketWorker], serverConnection, buc, stringToQuery, queryToString)
 }
-class WebSocketWorker(val serverConnection: ActorRef, buc: BucComputation[SearchSourceQuery, SearchSourceDataSet])
+class WebSocketWorker(val serverConnection: ActorRef, buc: BucComputation[WordSearchSourceQuery, WordSearchSourceDataSet],
+                      stringToQuery: String => WordSearchSourceQuery,
+                      queryToString: WordSearchSourceQuery => String)
   extends HttpServiceActor with websocket.WebSocketServerConnection with StaticRoutes {
   override def receive = handshaking orElse businessLogicNoUpgrade orElse closeLogic
 
@@ -47,8 +53,7 @@ class WebSocketWorker(val serverConnection: ActorRef, buc: BucComputation[Search
         case tf: TextFrame => TextFrame.unapply(tf).map(_.decodeString("UTF-8"))
       }
       sender() ! xString.map { query =>
-        val queryWords = SearchSourceQuery(query.toLowerCase)
-        val results = getQueryResults(queryWords)
+        val results = getQueryResults(query)
         sender ! TextFrame(results.toJson.compactPrint)
       }
     case x: FrameCommandFailed =>
@@ -62,8 +67,7 @@ class WebSocketWorker(val serverConnection: ActorRef, buc: BucComputation[Search
       msg.uri.query.get("q") match {
         case None => HttpResponse(StatusCodes.BadRequest, pathPage, headers=closeConn)
         case Some(query) =>
-          val queryWords = SearchSourceQuery(query.toLowerCase)
-          val results = getQueryResults(queryWords)
+          val results = getQueryResults(query)
           sender ! HttpResponse(entity=HttpEntity(`application/json`, results.toJson.compactPrint), headers=`Access-Control-Allow-Origin`(AllOrigins) :: closeConn)
       }
     case HttpRequest(HttpMethods.OPTIONS, path, _, _, _) =>
@@ -78,12 +82,13 @@ class WebSocketWorker(val serverConnection: ActorRef, buc: BucComputation[Search
       sender ! HttpResponse(StatusCodes.NotFound, pathPage, headers=closeConn)
   }
   
-  private def getQueryResults(queryWords: SearchSourceQuery): Map[String, JsValue] = {
-    log.info("Got: " + queryWords.toString)
+  private def getQueryResults(query: String): Map[String, JsValue] = {
+    log.info("Got: " + query)
+    val queryWords = stringToQuery(query)
     val result = buc.getRefinements(queryWords).getOrElse(List().toIterator).toList.sortBy(-_._2)
     val suggested = result.take(5).toList.map(_._1)
-    val suggestionStrings = suggested.map(_.query.mkString(" "))
-    Map("results" -> JsArray(suggestionStrings.map(JsString(_))), "query" -> JsString(queryWords.query))
+    val suggestionStrings = suggested.map(queryToString)
+    Map("results" -> JsArray(suggestionStrings.map(JsString(_))), "query" -> JsString(query))
   }
   val closeConn = List(Connection.apply("close"))
 

@@ -4,18 +4,20 @@ import akka.actor.{Props, ActorSystem}
 import akka.io.IO
 import spray.can.Http
 import autocomplete.buc._
-import autocomplete.datasource.AOLSearchSource
+import autocomplete.datasource.AOLWordSearchSource
 import spray.can.server.UHttp
 
 object Server extends App {
-  val searchDataSet: AOLSearchSource = AOLSearchSource.testingSearches()
-  val searches: SearchSourceDataSet = new SearchSourceDataSet(searchDataSet)
-  val buc: BucComputation[SearchSourceQuery, SearchSourceDataSet] =
-    new BucComputation[SearchSourceQuery, SearchSourceDataSet](searches, 3)
+  val searchDataSet: AOLWordSearchSource = AOLWordSearchSource.testingSearches()
+  val searches: WordSearchSourceDataSet = new WordSearchSourceDataSet(searchDataSet)
+  val buc: BucComputation[WordSearchSourceQuery, WordSearchSourceDataSet] =
+    new BucComputation[WordSearchSourceQuery, WordSearchSourceDataSet](searches, 3)
   implicit lazy val system = ActorSystem("autocomplete-server")
 
-  val searchServer = system.actorOf(Props(new HttpSearchServer(buc)))
-  val socketServer = system.actorOf(Props(new SocketServer(buc)))
+  def stringToQuery(string: String): WordSearchSourceQuery = WordSearchSourceQuery.makeQuery(string.toLowerCase)
+  def queryToString(query: WordSearchSourceQuery): String = query.query.mkString(" ")
+  val searchServer = system.actorOf(Props(new HttpSearchServer(buc, stringToQuery, queryToString)))
+  val socketServer = system.actorOf(Props(new SocketServer(buc, stringToQuery, queryToString)))
   //IO(Http)  ! Http.Bind(searchServer, "localhost", 8080)
   IO(UHttp) ! Http.Bind(socketServer, "localhost", 8080)
 }
