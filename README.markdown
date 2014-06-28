@@ -44,6 +44,7 @@ should be a lot more helpful, because it'll suggest very salient things. I think
   * L - Language error
    * Lw - for web languages (CSS, HTML, JS etc)
   * P - Product problem
+  * A - Algorithm anomaly
   
 ### The list!
 
@@ -117,6 +118,18 @@ should be a lot more helpful, because it'll suggest very salient things. I think
     This might have been avoided with user stories or something, but I'm not too fussed. It may require some 
     re-engineering of the suggestion algorithm, because it needs to now look ahead, rather than simply looking for the 
     next word. But this is far too inefficient. Instead, we need to build a hybrid word/char scheme.
+  * Sat Jun 28 11:33:27 EST 2014 - A - 7ba8c6c4e87a679b905aa615010617bc29ccb935: There were four bugs in my lazy
+    counting trie. The first was a simple one - I didn't handle empty sequences correctly. This was easily remedied by
+    keeping a separate counter for empty values. I think I missed this because my use-case would never send in an empty
+    string. The second bug was that it didn't use the small prefix, instead of splitting a node like "ax" into a -> (x,y)
+    it would split to ax -> (ay) or something silly like that. This was more of a typo - I even set up the common prefix
+    that I was ment to use in a variable. The third mistake was that I didn't match the prefix, so I had a piece of code
+    which would try to add "ax" into a trie that contained the "by" node. I think this one arose because the algorithm
+    initially would pick out the "right child" to manipulate, then the various cases were used to pick the right way
+    to manipulate it. Then the algo changed, and the cases were used to pick both the way to manipulate, and the child
+    to manipulate, but I only had cases that covered picking the right manipulation method. The fourth was that the get
+    method failed to recurse properly. 
+  
 
 # Discoveries
 ## Memory use profiling

@@ -1,5 +1,7 @@
 package autocomplete.buc
 
+import autocomplete.GlobalReg
+
 /**
  *  This is a lot like a counting trie, except that this will
  *  not split up a long chain of entries. For example, for input
@@ -16,15 +18,33 @@ package autocomplete.buc
  */
 
 class LazySplittingCountingTrie[PrefixKey](items: Iterator[Seq[PrefixKey]]) {
+  val itemMeter = GlobalReg.reg.meter("LazyTrieItems")
+  val trieParts =
+    items.foldRight((TrieRoot.empty, 0l)){
+      case (item, (tree, count)) =>
+        itemMeter.mark()
+        if (item.length > 0) (tree.addNodeForcibly(item), count) else (tree, count+1)
+    }
   /** The trie! */
-  lazy val trie = items.foldRight(TrieRoot.empty)((item, tree) => tree.addNodeForcibly(item))
+  lazy val trie = trieParts._1
+  lazy val emptyCounter = trieParts._2
   /** Get the count for a key, zero if it's not found */
-  def get(key: Seq[PrefixKey]): Long = trie.tenderlyTraverseToNode(key).map(_.count).getOrElse(0l)
+  def get(key: Seq[PrefixKey]): Long = if (key.length == 0) emptyCounter else trie.tenderlyTraverseToNode(key).map(_.count).getOrElse(0l)
   /** Get the counts for direct decedents of a key */
-  def directChildrenCounts(key: Seq[PrefixKey]): List[(Seq[PrefixKey], Long)] =
-    trie.tenderlyTraverseToNode(key).map{ node =>
-      node.children.map{child => key ++ child.key -> child.count}
-    }.getOrElse(List())
+  def directChildrenCounts(key: Seq[PrefixKey]): List[(Seq[PrefixKey], Long)] = {
+    if (key.length == 0) {
+      trie.children.map{node =>
+         node.key -> node.count
+      }
+    } else {
+      trie.tenderlyTraverseToNode(key).map {
+        node =>
+          node.children.map {
+            child => key ++ child.key -> child.count
+          }
+      }.getOrElse(List())
+    }
+  }
 
   /**
    * The TrieNode is pretty much the center of this whole situation.
@@ -64,24 +84,33 @@ class LazySplittingCountingTrie[PrefixKey](items: Iterator[Seq[PrefixKey]]) {
     node, and this node has its count incremented.
      */
     def addNodeForcibly(item: Seq[PrefixKey]): T = {
-      children find {
-        case TrieBranch(k, _, _) => k.zip(item).takeWhile{case (a,b) => a == b}.length > 0
+      assert(item.length > 0)
+      children.zipWithIndex find {
+        case (TrieBranch(k, _, _), i) => k.zip(item).takeWhile{case (a,b) => a == b}.length > 0
       } match {
-        case None        =>
+        case None =>
           val newNode = new TrieBranch(item, 1, Nil)
           this.dup(children = newNode :: children)
-        case _ =>
-          val newChildren = children map {
-            case t@TrieBranch(k, c, _) if k == item => t.copy(count = c+1)
-            case   TrieBranch(k, c, ch) =>
-              val commonPrefix = k.zip(item).takeWhile{case (a,b) => a == b}.map(_._1)
+        case Some((childNode, i)) =>
+          val replacementNode = childNode match {
+            case t@TrieBranch(k, c, _) if k == item => t.copy(count = c + 1)
+            case t@TrieBranch(k, _, _)
+              if item.startsWith(k) => t.addNodeForcibly(item.drop(k.length))
+            case TrieBranch(k, c, ch) =>
+              val commonPrefix = k.zip(item).takeWhile {
+                case (a, b) => a == b
+              }.map(_._1)
               val childPrefix = k.drop(commonPrefix.length)
               val itemPrefix = item.drop(commonPrefix.length)
               val childNode = TrieBranch(childPrefix, c, ch)
-              val itemNode = TrieBranch(itemPrefix, 1, Nil)
-              TrieBranch(k, c+1, childNode :: itemNode :: Nil)
+              if (itemPrefix.length == 0) {
+                TrieBranch(commonPrefix, c+1, childNode :: Nil)
+              }else {
+                val itemNode = TrieBranch(itemPrefix, 1, Nil)
+                TrieBranch(commonPrefix, c + 1, childNode :: itemNode :: Nil)
+              }
           }
-          this.dup(count+1, newChildren)
+          this.dup(children = children.updated(i, replacementNode))
       }
     }
 
@@ -93,7 +122,7 @@ class LazySplittingCountingTrie[PrefixKey](items: Iterator[Seq[PrefixKey]]) {
     def tenderlyTraverseToNode(item: Seq[PrefixKey]): Option[TrieBranch] = {
       children.flatMap {
         case t@TrieBranch(k, _, _) if k == item => Some(t)
-        case t@TrieBranch(k, _, _) if item.startsWith(k) => tenderlyTraverseToNode(item.drop(k.length))
+        case t@TrieBranch(k, _, _) if item.startsWith(k) => t.tenderlyTraverseToNode(item.drop(k.length))
         case _ => None
       }.headOption
     }
@@ -104,19 +133,13 @@ class LazySplittingCountingTrie[PrefixKey](items: Iterator[Seq[PrefixKey]]) {
      * the key. Therefore, the only method we need to implement in sub-classes is dup, which
      * copies the object with modified count and children. It bascially follows the struture of
      * the case class copy() method.
-     * @param count
-     * @param children
+     * @param count the count for this node, which includes all nodes below it
+     * @param children the children of this node
      * @return
      */
     def dup(count: Long = count, children: List[TrieBranch] = children): T
   }
 
-  /**
-   * A branch for a Trie
-   * @param key
-   * @param count
-   * @param children
-   */
   case class TrieBranch(key: Seq[PrefixKey], count: Long, children: List[TrieBranch]) extends TrieNode[TrieBranch] {
     override def dup(count: Long = count, children: List[TrieBranch] = children): TrieBranch =
       this.copy(count=count, children=children)
