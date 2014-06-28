@@ -1,6 +1,7 @@
 package autocomplete.buc
 
 import scala.collection.{mutable, MapLike}
+import autocomplete.GlobalReg
 
 /**
  * This is a counting map, based around a prefix trie.
@@ -35,6 +36,7 @@ import scala.collection.{mutable, MapLike}
  * @tparam PrefixKey the type for each item in the prefix.
  */
 class CountingTrie[PrefixKey](items: Iterator[PrefixItem[PrefixKey]]) {
+  val meter = GlobalReg.reg.meter("CountingTrie")
   private val heads: mutable.HashMap[PrefixKey, MTrieNode] = new mutable.HashMap[PrefixKey, MTrieNode]()
   items.foreach(item => addKey(item.item))
 
@@ -43,6 +45,7 @@ class CountingTrie[PrefixKey](items: Iterator[PrefixItem[PrefixKey]]) {
    * @param key the key to add
    */
   private def addKey(key: Seq[PrefixKey]) {
+    meter.mark()
     assert(key.length > 0)
     val child = heads.get(key.head)
     val nextNode = child match {

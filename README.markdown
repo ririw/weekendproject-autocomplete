@@ -17,14 +17,22 @@
  * The suggestions should run with only 4GB of ram, so we need to be careful not to include too many.
   * Edit: It turns out that the in-memory version, accessible at aa00f9518967198c1a9997fbadec2309ba5fdc8b, can work
     with 16GB of memory quite happily! So I'm changing this reqirement from 4GB to 16GB.
-    This runs at a comfortable 399774.73 queries per second on my machine (which has 16GB ram).
+    This runs at a comfortable 399774.73 queries per second on my machine (which has 16GB ram). 
 
 ## Status
  * Working!
   * Run "./activator run" to run with the test set
   * Or: edit server/Server.scala:11 and replace "testSearches" with "productionSearches", and then run with "./activator -mem 10000 run"
   * Also run a webserver, "cd frontent; python -m SimpleHTTPServer
-
+ * Sadly, the new approach (the character-wise one) is about 10x slower than the old. Which makes sense, it does 
+   far more work. Just a little bit disappointing. It may mean make it impossible to build the query stuff properly, 
+   and it may not be possible to pull in the full data set. 
+   It can manage 30,000 insertions per second, so the full 30,000,000 data set would take 1000 seconds - around 20 minutes.
+   Note that in 2013, google got 2,000,000,000,000 queries
+ * It may be necessary to shard the work. This is quite simple though - just divide based on prefix, so [ab, ac, bb, bd]
+   would shard [ab, ac], [bb, bd]. Very simple! You'd only need 10K computers to do the whole thing in 20 minutes. That
+   might only be a few grand on AWS. </musing>
+ 
 ## Algorithm
  There will actually be two algorithms. The first is a prefix one, which suggests the next most probably suggestions given a
 string. The second kicks in when the first has no suggestions, and suggests words based on the existing bag of words in the

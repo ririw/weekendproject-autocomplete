@@ -4,19 +4,21 @@ import org.scalatest.{Matchers, FlatSpec}
 import autocomplete.datasource.AOLWordSearchSource
 import com.codahale.metrics.ConsoleReporter
 import java.util.concurrent.TimeUnit
+import autocomplete.GlobalReg
 
 class BucBenchmarkSpec extends FlatSpec with Matchers {
-  lazy val searchDataSet: AOLWordSearchSource = AOLWordSearchSource.testingSearches()
-  lazy val searches: WordSearchSourceDataSet = new WordSearchSourceDataSet(searchDataSet)
-  lazy val buc: BucComputation[WordSearchSourceQuery, WordSearchSourceDataSet] =
-    new BucComputation[WordSearchSourceQuery, WordSearchSourceDataSet](searches, 3)
-
   it should "Benchmark ok" in {
-    val searchDataSetP: AOLWordSearchSource = AOLWordSearchSource.productionSearches()
+    val reporter = ConsoleReporter.forRegistry(GlobalReg.reg)
+      .convertRatesTo(TimeUnit.SECONDS)
+      .convertDurationsTo(TimeUnit.MILLISECONDS)
+      .build()
+    val searchDataSetP: AOLWordSearchSource = AOLWordSearchSource.testingSearches()
     val searchesP: WordSearchSourceDataSet = new WordSearchSourceDataSet(searchDataSetP)
+    reporter.report()
+    reporter.close()
     val bucP: BucComputation[WordSearchSourceQuery, WordSearchSourceDataSet] =
       new BucComputation[WordSearchSourceQuery, WordSearchSourceDataSet](searchesP, 10)
-    val result = buc.apply(WordSearchSourceQuery.makeQuery())
+    val result = bucP.apply(WordSearchSourceQuery.makeQuery())
 
     result should not be None
     result.get should be > 0l
@@ -24,22 +26,21 @@ class BucBenchmarkSpec extends FlatSpec with Matchers {
 
     import com.codahale.metrics.MetricRegistry
     val metricsRegistry = new MetricRegistry()
-    val reporter = ConsoleReporter.forRegistry(metricsRegistry)
+    val reporter2 = ConsoleReporter.forRegistry(metricsRegistry)
       .convertRatesTo(TimeUnit.SECONDS)
       .convertDurationsTo(TimeUnit.MILLISECONDS)
       .build()
-    reporter.start(500, TimeUnit.MILLISECONDS)
 
     val meter = metricsRegistry.meter("RPS")
     // This is here so I can see what the "base" memory use is
     // after pushing out the stuff used to build the data type.
     System.gc()
-    val miniDataSet = searchDataSet.iterator
+    val miniDataSet = AOLWordSearchSource.testingSearches().iterator
     for (query <- miniDataSet) {
       bucP.apply(WordSearchSourceQuery(query.search))
       meter.mark()
     }
-    reporter.stop()
-    reporter.close()
+    reporter2.report()
+    reporter2.close()
   }
 }
