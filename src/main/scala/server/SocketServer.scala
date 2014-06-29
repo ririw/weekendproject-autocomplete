@@ -10,7 +10,6 @@ import spray.can.Http
 import spray.http._
 import MediaTypes._
 import spray.http._
-import autocomplete.buc._
 import spray.json._
 import DefaultJsonProtocol._
 
@@ -19,29 +18,24 @@ import spray.http.HttpRequest
 import scala.Some
 import spray.http.HttpResponse
 import spray.can.websocket.FrameCommandFailed
+import autocomplete.AutoCompleter
 
 
-class SocketServer(buc: BucComputation[WordSearchSourceQuery, WordSearchSourceDataSet],
-                   stringToQuery: String => WordSearchSourceQuery,
-                   queryToString: WordSearchSourceQuery => String) extends Actor with ActorLogging {
+class SocketServer(autoCompleter: AutoCompleter) extends Actor with ActorLogging {
   def receive = {
     // when a new connection comes in we register a WebSocketConnection actor as the per connection handler
     case Http.Connected(remoteAddress, localAddress) =>
       val serverConnection = sender()
-      val conn = context.actorOf(WebSocketWorker.props(serverConnection, buc, stringToQuery, queryToString))
+      val conn = context.actorOf(WebSocketWorker.props(serverConnection, autoCompleter))
       serverConnection ! Http.Register(conn)
   }
 }
 final case class Push(msg: String)
 object WebSocketWorker {
-  def props(serverConnection: ActorRef, buc: BucComputation[WordSearchSourceQuery, WordSearchSourceDataSet],
-            stringToQuery: String => WordSearchSourceQuery,
-            queryToString: WordSearchSourceQuery => String) =
-    Props(classOf[WebSocketWorker], serverConnection, buc, stringToQuery, queryToString)
+  def props(serverConnection: ActorRef, autoCompleter: AutoCompleter) =
+    Props(classOf[WebSocketWorker], serverConnection, autoCompleter)
 }
-class WebSocketWorker(val serverConnection: ActorRef, buc: BucComputation[WordSearchSourceQuery, WordSearchSourceDataSet],
-                      stringToQuery: String => WordSearchSourceQuery,
-                      queryToString: WordSearchSourceQuery => String)
+class WebSocketWorker(val serverConnection: ActorRef, autoCompleter: AutoCompleter)
   extends HttpServiceActor with websocket.WebSocketServerConnection with StaticRoutes {
   override def receive = handshaking orElse businessLogicNoUpgrade orElse closeLogic
 
@@ -84,10 +78,7 @@ class WebSocketWorker(val serverConnection: ActorRef, buc: BucComputation[WordSe
   
   private def getQueryResults(query: String): Map[String, JsValue] = {
     log.info("Got: " + query)
-    val queryWords = stringToQuery(query)
-    val result = buc.getRefinements(queryWords).getOrElse(List().toIterator).toList.sortBy(-_._2)
-    val suggested = result.take(5).toList.map(_._1)
-    val suggestionStrings = suggested.map(queryToString)
+    val suggestionStrings = autoCompleter.autoComplete(query)
     Map("results" -> JsArray(suggestionStrings.map(JsString(_))), "query" -> JsString(query))
   }
   val closeConn = List(Connection.apply("close"))

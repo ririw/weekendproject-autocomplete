@@ -6,27 +6,21 @@ import spray.http._
 import MediaTypes._
 import spray.http._
 import spray.http.HttpHeaders.{`Access-Control-Allow-Methods`, `Access-Control-Allow-Origin`, Connection}
-import autocomplete.buc._
 import spray.json._
 import DefaultJsonProtocol._
 import spray.http.HttpRequest
 import spray.http.HttpResponse
 import scala.Some
+import autocomplete.AutoCompleter
 
-class HttpSearchServer(buc: BucComputation[WordSearchSourceQuery, WordSearchSourceDataSet],
-                       stringToQuery: String => WordSearchSourceQuery,
-                       queryToString: WordSearchSourceQuery => String) extends Actor with ActorLogging {
+class HttpSearchServer(autocompleter: AutoCompleter) extends Actor with ActorLogging {
   override def receive: Receive = {
     case _: Http.Connected => sender ! Http.Register(self)
     case msg@HttpRequest(HttpMethods.GET, Uri.Path("/search"), _, _, _) =>
       msg.uri.query.get("q") match {
         case None => HttpResponse(StatusCodes.BadRequest, pathPage, headers=closeConn)
         case Some(query) =>
-          val q = stringToQuery(query)
-          log.info("Got: " + q.toString)
-          val result = buc.getRefinements(q).getOrElse(List().toIterator).toList.sortBy(-_._2)
-          val suggested = result.take(5).toList.map(_._1)
-          val suggestionStrings = suggested.map(queryToString)
+          val suggestionStrings = autocompleter.autoComplete(query)
           val results: Map[String, JsValue] = Map("results" -> JsArray(suggestionStrings.map(JsString(_))), "query" -> JsString(query))
           sender ! HttpResponse(entity=HttpEntity(`application/json`, results.toJson.compactPrint), headers=`Access-Control-Allow-Origin`(AllOrigins) :: closeConn)
       }
