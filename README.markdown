@@ -37,6 +37,9 @@
    to go when Akka logs a bunch
  * I'm bored with the project, but the next step would be to modify the trie or augment it so that it produces word
    suggestions - at the moment it tends to just look a few chars ahead which makes the suggestions silly.
+   Another thing might be to use STM to make the trie construction go in parallel - most of the manipulations are easy
+   to run in parallel if you use optimistic concurrency, like STM does.
+   
 ## Algorithm
  There will actually be two algorithms. The first is a prefix one, which suggests the next most probably suggestions given a
 string. The second kicks in when the first has no suggestions, and suggests words based on the existing bag of words in the
