@@ -46,7 +46,11 @@ class LazySplittingCountingTrie[PrefixKey](trie: TrieRoot[PrefixKey], emptyCount
       trie.tenderlyTraverseToNode(key).flatMap(_.parent.map(_.key))
     }
   }
-
+  def minSupFilter(minSup: Long): LazySplittingCountingTrie[PrefixKey] = {
+    val newTrie = trie.filter{ _.count >= minSup}
+    val newCount = if (emptyCounter < minSup) 0 else emptyCounter
+    new LazySplittingCountingTrie[PrefixKey](newTrie, newCount)
+  }
 }
 object LazySplittingCountingTrie {
   val itemMeter = GlobalReg.reg.meter("LazyTrieItems")
@@ -109,7 +113,7 @@ sealed trait TrieNode[PrefixKey, T <: TrieNode[PrefixKey, T]] {
     }
     assert(item.length > 0)
     children.zipWithIndex find {
-      case (TrieBranch(k, _, _, _), i) => k.zip(item).takeWhile{case (a,b) => a == b}.length > 0
+      case (TrieBranch(k, _, _, _), i) => compareKeys(k, item)
     } match {
       case None =>
         val newNode = new TrieBranch[PrefixKey](item, 1, Nil, thisParent)
@@ -119,26 +123,42 @@ sealed trait TrieNode[PrefixKey, T <: TrieNode[PrefixKey, T]] {
           case t@TrieBranch(k, c, _, _) if k == item => t.copy(count = c + 1)
           case t@TrieBranch(k, _, _, _)
             if item.startsWith(k) => t.addNodeForcibly(item.drop(k.length))
-          case TrieBranch(k, c, ch, p) =>
-            val commonPrefix = k.zip(item).takeWhile {
-              case (a, b) => a == b
-            }.map(_._1)
-            val childPrefix = k.drop(commonPrefix.length)
-            val itemPrefix = item.drop(commonPrefix.length)
-            val childNode: TrieBranch[PrefixKey] = TrieBranch[PrefixKey](childPrefix, c, ch, None)
-            val itemNode: TrieBranch[PrefixKey] = TrieBranch[PrefixKey](itemPrefix, 1, Nil, None)
-            val newNode: TrieBranch[PrefixKey] = if (itemPrefix.length == 0) {
-              TrieBranch[PrefixKey](commonPrefix, c+1, childNode :: Nil, thisParent)
-            }else {
-              TrieBranch[PrefixKey](commonPrefix, c + 1, childNode :: itemNode :: Nil, thisParent)
-            }
-            childNode.parent = Some(newNode)
-            itemNode.parent = Some(newNode)
-            newNode.parent = thisParent
-            newNode
+          case t@TrieBranch(k, c, ch, p) =>
+            splitNode(t, item, thisParent)
         }
         this.dup(count = count + 1, children = children.updated(i, replacementNode))
     }
+  }
+
+  private def compareKeys(k: Seq[PrefixKey], item: Seq[PrefixKey]): Boolean = {
+    k.length > 0 && item.length > 0 && item.head == k.head
+  }
+
+  private def findCommonPrefix(a: Seq[PrefixKey], b: Seq[PrefixKey]): Seq[PrefixKey] = {
+    if (a.length == 0 || b.length == 0) Seq()
+    else if (a.head == b.head) a.head +: findCommonPrefix(a.tail, b.tail)
+    else Seq()
+  }
+  private def splitNode(t: TrieBranch[PrefixKey],
+                        item: Seq[PrefixKey],
+                        thisParent: Option[TrieBranch[PrefixKey]]): TrieBranch[PrefixKey] = {
+    val k = t.key
+    val c = t.count
+    val ch = t.children
+    val commonPrefix = findCommonPrefix(k, item)
+    val childPrefix = k.drop(commonPrefix.length)
+    val itemPrefix = item.drop(commonPrefix.length)
+    val childNode: TrieBranch[PrefixKey] = TrieBranch[PrefixKey](childPrefix, c, ch, None)
+    val itemNode: TrieBranch[PrefixKey] = TrieBranch[PrefixKey](itemPrefix, 1, Nil, None)
+    val newNode: TrieBranch[PrefixKey] = if (itemPrefix.length == 0) {
+      TrieBranch[PrefixKey](commonPrefix, c+1, childNode :: Nil, thisParent)
+    }else {
+      TrieBranch[PrefixKey](commonPrefix, c + 1, childNode :: itemNode :: Nil, thisParent)
+    }
+    childNode.parent = Some(newNode)
+    itemNode.parent = Some(newNode)
+    newNode.parent = thisParent
+    newNode
   }
 
   /**
@@ -190,12 +210,19 @@ case class TrieBranch[PrefixKey](key: Seq[PrefixKey],
     case None => s"TrieBranch(${key.toString}, $count, ${children.toString}, No Parent)@${System.identityHashCode(this)}"
     case Some(p) => s"TrieBranch(${key.toString}, $count, ${children.toString}, ${System.identityHashCode(p)})@${System.identityHashCode(this)}"
   }
+
+  def filter(fn: (TrieBranch[PrefixKey] => Boolean)): Option[TrieBranch[PrefixKey]] = {
+    if (fn(this)) Some(this.dup(children=children.flatMap(_.filter(fn))))
+    else None
+  }
 }
 case class TrieRoot[PrefixKey](count: Long,
                                children: List[TrieBranch[PrefixKey]]) extends TrieNode[PrefixKey, TrieRoot[PrefixKey]] {
   override def dup(count: Long, children: List[TrieBranch[PrefixKey]]): TrieRoot[PrefixKey] =
     this.copy(count=count, children=children)
   override def toString: String = s"TrieRoot($count, ${children.toString()})@${System.identityHashCode(this)}"
+
+  def filter(fn: (TrieBranch[PrefixKey] => Boolean)): TrieRoot[PrefixKey] = this.dup(children=children.flatMap(_.filter(fn)))
 }
 object TrieRoot {
   def empty[PrefixKey] = TrieRoot[PrefixKey](0, Nil)
